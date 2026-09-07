@@ -80,7 +80,11 @@ export class KarinaClock extends DurableObject<RelayEnvironment> {
     } catch {
       // Fixed status only: never log credentials, responses or listening data.
     }
-    await this.ctx.storage.put({ lastAttempt: Date.now(), lastStatus: status });
+    const lastAttempt = Date.now();
+    await this.ctx.storage.put({ lastAttempt, lastStatus: status });
+    // The Site starts its own five-minute cooldown when it receives the job.
+    // Count from completion so network latency cannot make the next wakeup early.
+    await this.ctx.storage.setAlarm(lastAttempt + 300000);
     if (status < 200 || status >= 300)
       console.error('Karina scheduled sync failed', status);
   }

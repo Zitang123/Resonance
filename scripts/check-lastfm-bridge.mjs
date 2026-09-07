@@ -51,6 +51,8 @@ const mf = new Miniflare(
     const url = new URL(request.url);
     if (url.hostname !== 'ws.audioscrobbler.com' || url.searchParams.get('method') !== 'user.getRecentTracks') return new Response(null, {status: 400});
     const page = Number(url.searchParams.get('page'));
+    if (url.searchParams.has('from') && Number(url.searchParams.get('to')) < Math.floor(Date.now()/1000)-60)
+      return new Response('Incremental cycle must include newly available history', {status:400});
     const track = page === 1 ? [
       {name:'正在播放',artist:{'#text':'Test artist'},album:{'#text':''},'@attr':{nowplaying:'true'}},
       {name:'星星',artist:{'#text':'Test artist'},album:{'#text':'Test album'},date:{uts:'1788739200'}},
@@ -77,9 +79,10 @@ try {
       "INSERT INTO connections VALUES ('alice','lastfm','listener','listener','encrypted',1)",
     )
     .run();
+  const backfillCutoff = Math.floor(Date.now() / 1000) - 3600;
   await db
     .prepare("INSERT INTO sync_jobs(user_id,cutoff) VALUES ('alice',?)")
-    .bind(Math.floor(Date.now() / 1000))
+    .bind(backfillCutoff)
     .run();
   const sync = async () => {
     await db
@@ -93,6 +96,10 @@ try {
   assert.equal(first.status, 200);
   assert.equal(first.complete, false);
   assert.match(first.message, /Saved 200 new listens/);
+  assert.equal(
+    (await db.prepare('SELECT cutoff FROM sync_jobs').first()).cutoff,
+    backfillCutoff,
+  );
   const second = await sync();
   assert.equal(second.complete, true);
   assert.match(second.message, /Saved 200 new listens/);
@@ -110,6 +117,7 @@ try {
     await mf.dispatchFetch('https://test.example/stats?owner=bob')
   ).json();
   assert.equal(other.count, 0);
+  await db.prepare('UPDATE sync_jobs SET cutoff=?').bind(backfillCutoff).run();
   const repeated = await sync();
   assert.match(repeated.message, /Saved 0 new listens/);
   assert.equal(

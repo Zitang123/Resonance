@@ -101,6 +101,10 @@ for (const downstreamStatus of [200, 503]) {
     assert.equal(status.lastStatus, downstreamStatus);
     assert.ok(status.lastAttempt > 0);
     assert.ok(
+      status.nextRun >= status.lastAttempt + 300000,
+      'The next alarm must follow the downstream completion cooldown',
+    );
+    assert.ok(
       status.nextRun > Date.now() + 240000,
       'The next run remains scheduled even after an outage',
     );

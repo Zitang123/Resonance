@@ -53,9 +53,9 @@ export async function syncPage(owner: string) {
     now = Date.now();
   const job = await db
     .prepare(
-      'UPDATE sync_jobs SET lease=? WHERE user_id=? AND lease<? AND next_run<=? RETURNING *',
+      "UPDATE sync_jobs SET lease=?,cutoff=CASE WHEN phase='incremental' AND page=1 THEN ? ELSE cutoff END WHERE user_id=? AND lease<? AND next_run<=? RETURNING *",
     )
-    .bind(now + 45000, owner, now, now)
+    .bind(now + 45000, Math.floor(now / 1000), owner, now, now)
     .first<Job>();
   if (!job)
     return {
