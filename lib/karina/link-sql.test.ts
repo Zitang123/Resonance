@@ -23,6 +23,52 @@ const input = {
   stateHash: 'state',
   now: 10000,
 };
+
+void test('Spotify identities stay unique across owners and cannot replace another user’s connection', () => {
+  const db = setup();
+  const link = (owner: string, externalId: string) => {
+    db.prepare(
+      "INSERT OR REPLACE INTO oauth_states(hash,user_id,provider,verifier,expires,used) VALUES (?,?,'spotify','encrypted',20000,1)",
+    ).run(`state-${owner}`, owner);
+    const statements = linkStatements({
+      ...input,
+      owner,
+      provider: 'spotify',
+      externalId,
+      name: owner,
+      stateHash: `state-${owner}`,
+    });
+    db.exec('BEGIN');
+    try {
+      for (const q of statements) db.prepare(q.sql).run(...q.params);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+  };
+  try {
+    link('alice', 'stable-alice');
+    link('bob', 'stable-bob');
+    assert.throws(() => link('bob', 'stable-alice'), /UNIQUE/);
+    assert.equal(
+      db
+        .prepare("SELECT external_id FROM connections WHERE user_id='alice'")
+        .get()!.external_id,
+      'stable-alice',
+    );
+    assert.equal(
+      db
+        .prepare("SELECT external_id FROM connections WHERE user_id='bob'")
+        .get()!.external_id,
+      'stable-bob',
+    );
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM sync_jobs').get()!.n, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM listens').get()!.n, 0);
+  } finally {
+    db.close();
+  }
+});
 function claim(db: DatabaseSync) {
   db.prepare(
     'INSERT INTO oauth_states(hash,user_id,provider,verifier,expires,used) VALUES (?,?,?,?,?,1)',

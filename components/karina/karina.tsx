@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   Check,
-  Copy,
   MessageCircle,
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
 import { Modal } from '@/components/resonance/shared';
-import { api, useArchive } from './use-archive';
+import { api, useArchive, type ArchiveStatus } from './use-archive';
+import { SpotifyPlaying } from './spotify-playing';
 import { exportArchive } from './export-archive';
 const providerLabels = {
-  lastfm: 'History bridge',
+  lastfm: 'Listening history',
   discord: 'Discord',
   spotify: 'Spotify',
 };
@@ -83,7 +83,15 @@ export function Karina({ onListening }: { onListening: () => void }) {
               ? 'A different or unverified Last.fm archive is retained. Export and delete it before linking this account.'
               : result === 'cancelled'
                 ? 'Connection cancelled. You can try again whenever you’re ready.'
-                : 'That connection could not complete. Check setup and try again.',
+                : result === 'account-conflict'
+                  ? 'This music or Discord account is already linked to another Resonance account. Sign in to that Resonance account to manage it.'
+                  : result === 'spotify-access'
+                    ? 'Spotify has not enabled access for this account. Resonance currently has limited beta access.'
+                    : result === 'provider-busy'
+                      ? 'Spotify is busy. Wait a little and try connecting again.'
+                      : result === 'expired'
+                        ? 'The Spotify connection expired. Please try connecting again.'
+                        : 'That connection could not complete. Please try again.',
         );
         history.replaceState(null, '', location.pathname + '?space=Karina');
       }
@@ -110,7 +118,9 @@ export function Karina({ onListening }: { onListening: () => void }) {
       await api('/api/karina', { action: 'disconnect', provider: remove });
       setRemove(null);
       setNotice(
-        'Disconnected. Previously imported history remains in your archive until you delete it.',
+        remove === 'spotify'
+          ? 'Spotify disconnected. Your saved Spotify connection details have been deleted.'
+          : 'Disconnected. Previously imported history remains in your archive until you delete it.',
       );
       await reload();
     } catch (e) {
@@ -153,7 +163,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
           </p>
           <div className="button-row">
             <button className="button primary" onClick={() => setSetup(true)}>
-              Set up Karina <ArrowUpRight size={16} />
+              Connect your music <ArrowUpRight size={16} />
             </button>
             {status?.installUrl ? (
               <a
@@ -166,7 +176,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
               </a>
             ) : (
               <span className="setup-caption">
-                No developer accounts yet? Start here.
+                Connect once, then use Karina in Discord.
               </span>
             )}
           </div>
@@ -188,7 +198,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
           {error || notice}
         </output>
       )}
-      {!status?.signedIn && (
+      {status && !status.signedIn && (
         <div className="archive-signin">
           <ShieldCheck size={22} />
           <div>
@@ -207,29 +217,26 @@ export function Karina({ onListening }: { onListening: () => void }) {
         <div className="section-heading">
           <h3>Your connections.</h3>
           <button className="text-button" onClick={() => void reload()}>
-            Check setup <RefreshCw size={14} />
+            Refresh <RefreshCw size={14} />
           </button>
         </div>
         <div className="connection-list">
-          {(['lastfm', 'discord', 'spotify'] as const).map((p, i) => {
-            const linked = status?.connected.find((c) => c.provider === p),
-              configured = status?.configured[p];
+          {(['spotify', 'discord', 'lastfm'] as const).map((p, i) => {
+            const linked = status?.connected.find((c) => c.provider === p);
+            const configured = status?.configured[p];
             return (
               <div className="connection-row" key={p}>
                 <span className="connection-number">0{i + 1}</span>
                 <div>
-                  <h4>
-                    {providerLabels[p]}{' '}
-                    {p === 'spotify' && <small>optional</small>}
-                  </h4>
+                  <h4>{providerLabels[p]}</h4>
                   <p>
                     {linked
                       ? `Connected as ${linked.name}`
                       : p === 'lastfm'
-                        ? 'Last.fm supplies recorded listens. Resonance builds your archive and statistics.'
+                        ? 'Use Last.fm’s recorded listens for your Resonance archive and statistics.'
                         : p === 'discord'
                           ? 'Link your identity, then install Karina on your account.'
-                          : 'Optional direct current-playing display. Full history currently uses the bridge.'}
+                          : 'Show what you’re playing on Spotify, here and with Karina’s /fm command.'}
                   </p>
                 </div>
                 <span
@@ -241,31 +248,27 @@ export function Karina({ onListening }: { onListening: () => void }) {
                     </>
                   ) : configured ? (
                     'Ready to connect'
+                  ) : status ? (
+                    'Not available yet'
                   ) : (
-                    'Setup needed'
+                    'Checking…'
                   )}
                 </span>
                 {linked ? (
                   <button className="text-button" onClick={() => setRemove(p)}>
                     Disconnect
                   </button>
-                ) : configured && status?.signedIn ? (
-                  <a className="button small" href={`/api/karina/oauth/${p}`}>
-                    Connect
-                  </a>
                 ) : (
-                  <button
-                    className="button small"
-                    onClick={() => setSetup(true)}
-                  >
-                    Set up
-                  </button>
+                  <ConnectButton provider={p} status={status} />
                 )}
               </div>
             );
           })}
         </div>
       </section>
+      {status?.connected.some((c) => c.provider === 'spotify') && (
+        <SpotifyPlaying onConnectionChange={reload} />
+      )}
       <div className="karina-columns">
         <section className="sync-panel">
           <p className="eyebrow">The archive keeps growing</p>
@@ -294,7 +297,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
               <dd>
                 {schedulerActive
                   ? 'Scheduler connected'
-                  : 'Scheduler setup needed'}
+                  : 'Automatic updates not active'}
               </dd>
             </div>
             <div>
@@ -424,128 +427,107 @@ export function Karina({ onListening }: { onListening: () => void }) {
       <Modal
         open={setup}
         onClose={() => setSetup(false)}
-        title="A home for Karina."
-        description="Connect Karina to Discord first. Add a listening source when you’re ready to share your music."
+        title="Connect your music."
+        description="Your connections belong to your Resonance account. Choose what to share, and disconnect whenever you want."
         wide
       >
         <ol className="setup-steps">
           <li>
             <span>01</span>
             <div>
-              <h3>Create your Discord application</h3>
+              <h3>Connect Spotify</h3>
               <p>
-                Choose the name Karina. In Installation, enable{' '}
-                <b>User Install</b> with <b>applications.commands</b>. Your
-                account install works in DMs, group chats and eligible servers.
+                Approve access on Spotify’s own website. Resonance securely
+                keeps your connection so Karina can check what you’re playing
+                when you use /fm. We never receive your Spotify password.
               </p>
-              <a
-                href="https://discord.com/developers/applications"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open Discord Developer Portal <ArrowUpRight size={14} />
-              </a>
-              <p>In OAuth2, add this exact redirect:</p>
-              <CopyLine value={status?.callbacks.discord || ''} />
+              <ConnectButton provider="spotify" status={status} />
+              <p className="setup-caption">
+                Spotify access is currently a limited beta. This connection
+                shares current playback; it does not recover your lifetime
+                history.
+              </p>
             </div>
           </li>
           <li>
             <span>02</span>
             <div>
-              <h3>Bring Spotify listening into Resonance</h3>
+              <h3>Link Discord</h3>
               <p>
-                Direct Spotify access cannot currently power the full archive
-                and statistics under its documented API access and usage rules.
-                Use Last.fm as a history bridge: create its API account, set
-                this callback, then connect Spotify in Last.fm Applications.
-                Your archive, charts and commands are built by Resonance.
+                Connect your Discord identity to the same Resonance account,
+                then add Karina to Discord. Listening commands share your
+                results in the conversation where you run them.
               </p>
-              <CopyLine value={status?.callbacks.lastfm || ''} />
               <div className="button-row">
-                <a
-                  href="https://www.last.fm/api/account/create"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Create Last.fm API account ↗
-                </a>
-                <a
-                  href="https://www.last.fm/settings/applications"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Last.fm applications ↗
-                </a>
+                <ConnectButton provider="discord" status={status} />
+                {status?.installUrl && (
+                  <a
+                    className="button small"
+                    href={status.installUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Add Karina to Discord
+                  </a>
+                )}
               </div>
             </div>
           </li>
           <li>
             <span>03</span>
             <div>
-              <h3>Store keys securely</h3>
+              <h3>Add your listening history</h3>
               <p>
-                Set the website address and Discord application ID, public key,
-                client secret and Karina encryption key in the host’s settings.
-                Add listening-provider and scheduler keys when you enable those
-                connections. Never put secrets into chat or browser code.
+                For ongoing Spotify statistics, connect Spotify in your Last.fm
+                account, then link Last.fm here. Resonance builds your archive,
+                charts and Karina replies from those recorded listens. No API
+                keys or Last.fm Pro subscription are needed from you.
               </p>
+              <div className="button-row">
+                <ConnectButton provider="lastfm" status={status} />
+                <a
+                  className="text-button"
+                  href="https://www.last.fm/settings/applications"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Connect Spotify in Last.fm <ArrowUpRight size={14} />
+                </a>
+              </div>
               <p>
-                Enable Last.fm after reviewing its API conditions for this
-                instance. Optional Spotify display needs its own app and access
-                review.
+                Recording starts when the bridge is connected. Earlier history
+                must already exist in your bridge account or come from a
+                supported import; it does not appear automatically.
               </p>
-              <a
-                href="https://github.com/Zitang123/Resonance/blob/main/docs/KARINA_SETUP.md"
-                target="_blank"
-                rel="noreferrer"
+              <button
+                className="text-button"
+                onClick={() => {
+                  setSetup(false);
+                  onListening();
+                }}
               >
-                Open the exact setup guide ↗
-              </a>
-            </div>
-          </li>
-          <li>
-            <span>04</span>
-            <div>
-              <h3>Let Discord reach Karina</h3>
-              <p>
-                For this public website, set Discord’s Interactions Endpoint URL
-                to the address below. Resonance checks Discord’s signature on
-                every command. Save it after the Discord keys are configured,
-                then register the included global commands.
-              </p>
-              <CopyLine value={status?.interactionsUrl || ''} />
-              <p>
-                The optional relay adds scheduled history updates while you’re
-                away. It is also needed if you make the whole website private.
-              </p>
-              <p>
-                Sign in to Resonance to link your own listening account.
-                Installing Karina in Discord is a separate step; it does not
-                connect your listening history automatically.
-              </p>
+                Open your listening archive <ArrowUpRight size={14} />
+              </button>
             </div>
           </li>
         </ol>
-        <div className="setup-readiness">
-          <strong>Current readiness</strong>
-          <span>{status?.database ? '✓' : '○'} History database</span>
-          <span>
-            {status?.configured.discord ? '✓' : '○'} Discord credentials
-          </span>
-          <span>
-            {status?.configured.lastfm ? '✓' : '○'} Last.fm credentials
-          </span>
-          <span>{schedulerActive ? '✓' : '○'} Background scheduler</span>
-        </div>
-        <button className="button primary" onClick={() => void reload()}>
-          Check setup again
-        </button>
+        <p className="connection-privacy">
+          Music replies are visible in the Discord conversation where you run
+          them. Account controls are private.{' '}
+          <a href="/privacy" target="_blank" rel="noreferrer">
+            How Resonance uses your data
+          </a>
+        </p>
       </Modal>
       <Modal
         open={!!remove}
         onClose={() => !busy && setRemove(null)}
         title={`Disconnect ${remove || ''}?`}
-        description="Future access from Resonance stops. Imported history remains until you delete it. You can also revoke the app from the provider’s account settings."
+        description={
+          remove === 'spotify'
+            ? 'Resonance will delete your saved Spotify identity and access tokens. Karina will stop checking your Spotify playback. You can also remove Resonance from Spotify’s account settings.'
+            : 'Future access from Resonance stops. Imported history remains until you delete it. You can also revoke the app from the provider’s account settings.'
+        }
       >
         <button
           className="button primary"
@@ -579,20 +561,52 @@ export function Karina({ onListening }: { onListening: () => void }) {
     </div>
   );
 }
-function CopyLine({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="copy-line">
-      <code>{value || 'Loading callback…'}</code>
-      <button
-        className="icon-button"
-        aria-label="Copy callback URL"
-        onClick={() =>
-          void navigator.clipboard.writeText(value).then(() => setCopied(true))
-        }
-      >
-        {copied ? <Check size={15} /> : <Copy size={15} />}
+function ConnectButton({
+  provider,
+  status,
+}: {
+  provider: 'spotify' | 'discord' | 'lastfm';
+  status: ArchiveStatus | null;
+}) {
+  const label =
+    provider === 'lastfm'
+      ? 'Connect Last.fm'
+      : `Connect ${providerLabels[provider]}`;
+  if (!status)
+    return (
+      <button className="button small" disabled>
+        Checking…
       </button>
-    </div>
+    );
+  if (status.connected.some((c) => c.provider === provider))
+    return (
+      <span className="connection-state connected">
+        <Check size={14} /> Connected
+      </span>
+    );
+  if (!status.configured[provider])
+    return (
+      <button className="button small" disabled>
+        Not available yet
+      </button>
+    );
+  if (!status.signedIn)
+    return (
+      <a
+        className="button small"
+        href="/signin-with-chatgpt?return_to=%2F%3Fspace%3DKarina"
+        target="_top"
+      >
+        Sign in to connect
+      </a>
+    );
+  return (
+    <a
+      className="button small"
+      href={`/api/karina/oauth/${provider}`}
+      target="_top"
+    >
+      {label}
+    </a>
   );
 }

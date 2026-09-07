@@ -73,12 +73,13 @@ export async function spotifyPlaying(owner: string) {
       tokens = unseal<SpotifyTokens>(owner, 'spotify', current.credentials);
       if (tokens.expiresAt < Date.now() + 60000) {
         tokens = await refreshSpotifyToken(tokens, providerConfig());
-        await database()
+        const saved = await database()
           .prepare(
             "UPDATE connections SET credentials=? WHERE user_id=? AND provider='spotify' AND credentials=?",
           )
           .bind(seal(owner, 'spotify', tokens), owner, current.credentials)
           .run();
+        if (!saved.meta.changes) return null;
       }
     } finally {
       await database()
@@ -88,8 +89,12 @@ export async function spotifyPlaying(owner: string) {
     }
   }
   await reserveProvider('spotify');
+  const active = await connection(owner, 'spotify');
+  if (!active || active.updated_at !== linked.updated_at) return null;
   // Never insert a currently-playing snapshot into the listening archive.
   const snapshot = await getSpotifyNowPlaying(tokens.accessToken);
+  const latest = await connection(owner, 'spotify');
+  if (!latest || latest.updated_at !== linked.updated_at) return null;
   return snapshot
     ? {
         title: snapshot.name,

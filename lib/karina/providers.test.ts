@@ -8,6 +8,7 @@ import {
   exchangeSpotify,
   getLastfmPage,
   getSpotifyNowPlaying,
+  getSpotifyIdentity,
   makeAuthorization,
   ProviderError,
   refreshSpotifyToken,
@@ -269,6 +270,57 @@ void test('Spotify PKCE exchange calculates access expiry and calendar six-month
   assert.equal(
     request.calls[0].url.toString(),
     'https://accounts.spotify.com/api/token',
+  );
+});
+
+void test('Spotify identity linking uses immutable account_id and discards email and tokens', async () => {
+  const request = queue(
+    json({
+      account_id: 'immutable_123',
+      id: 'mutable-user-name',
+      display_name: 'Listener',
+      email: 'private@example.com',
+      access_token: 'do-not-retain',
+    }),
+  );
+  assert.deepEqual(await getSpotifyIdentity('test-access', request), {
+    accountId: 'immutable_123',
+    displayName: 'Listener',
+  });
+  assert.equal(
+    request.calls[0].url.toString(),
+    'https://api.spotify.com/v1/me',
+  );
+  assert.equal(
+    new Headers(request.calls[0].init.headers).get('authorization'),
+    'Bearer test-access',
+  );
+});
+
+void test('Spotify rejects missing or invalid stable identities rather than falling back to id or email', async () => {
+  for (const account_id of [
+    undefined,
+    '',
+    'bad/identity',
+    'a'.repeat(201),
+    123,
+  ]) {
+    await assert.rejects(
+      getSpotifyIdentity(
+        'test-access',
+        queue(
+          json({ account_id, id: 'mutable', email: 'private@example.com' }),
+        ),
+      ),
+      ProviderError,
+    );
+  }
+  assert.deepEqual(
+    await getSpotifyIdentity(
+      'test-access',
+      queue(json({ account_id: 'stable', display_name: null })),
+    ),
+    { accountId: 'stable', displayName: 'Spotify listener' },
   );
 });
 

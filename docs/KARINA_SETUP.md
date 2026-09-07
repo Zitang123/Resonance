@@ -47,7 +47,7 @@ Friends can visit the public website, then sign in to link their own accounts. D
 
 1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and create **Karina**.
 2. Under **Installation**, enable **User Install**. Its default scope is **applications.commands**. No Administrator, bot scope, message-content intent or presence intent is needed for these HTTP slash commands.
-3. Under **OAuth2**, register the exact redirect shown in the in-app setup:
+3. Under **OAuth2**, register this exact redirect:
 
    `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/discord`
 
@@ -77,7 +77,7 @@ References: [installation contexts](https://docs.discord.com/developers/resource
 
 The preferred long-term product is direct Spotify connection. Under the currently documented Spotify API and developer policy, the promised unrestricted statistics and lifetime history cannot be delivered that way. The user has explicitly authorized Last.fm as a fallback. This adapter supplies records; every archive, calculation, chart and Karina command is implemented in Resonance. Export-based use is also possible without an active Last.fm connection.
 
-1. Create a [Last.fm API account](https://www.last.fm/api/account/create) for the intended use. Register the callback shown in Karina:
+1. The deployment owner creates a [Last.fm API account](https://www.last.fm/api/account/create) once for the intended use. Ordinary visitors never need developer credentials. Register this callback:
 
    `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/lastfm`
 
@@ -134,6 +134,14 @@ The relay’s five-minute cron calls `/api/karina/jobs`. The authenticated job h
 The current public installation uses the Site endpoint directly. Discord’s signed endpoint verification, the owner’s identity link and user installation, and live /stats, /chart and private /privacy responses in Karina’s own DM were verified on 7 September 2026. The archive was empty; populated chart uploads, other users, group DMs and server delivery still need live verification. The unattended scheduler remains unconfigured. See QA.md for exact evidence and the Worker fetch regression test.
 
 ## 6. Optional Spotify display and archive limits
+
+The deployment owner creates one Spotify developer application for Resonance, using the public site URL, `/privacy` data-use page and this exact callback:
+
+`https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/spotify`
+
+Configure the shared client ID and secret in Sites, then enable `SPOTIFY_DISPLAY_ENABLED` after access/use review. Ordinary visitors sign in to Resonance and choose **Connect Spotify**; Spotify handles their consent and password. The callback verifies Spotify’s immutable `account_id`, stores only the identity/display name and encrypted tokens, and rejects a Spotify identity already linked to another Resonance owner. Developer setup no longer appears in the visitor guide.
+
+The website playback panel and Karina use the same owner-scoped connection. Playback is checked on demand rather than continuously polled or inserted into the archive. The connection is rechecked around upstream requests so disconnect/relink cancels stale display results. The public data-use page describes sharing, retention and disconnect behavior.
 
 Spotify OAuth asks only for `user-read-currently-playing` and uses S256 PKCE. Access tokens are refreshed server-side and replacement refresh tokens are retained. The current documentation describes a six-month refresh lifetime for new Dashboard applications; the implementation preserves the original authorization deadline and requires reauthorization when it expires. Disconnecting deletes the encrypted tokens; users can also revoke access in Spotify’s account settings.
 

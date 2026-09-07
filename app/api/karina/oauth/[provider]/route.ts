@@ -19,7 +19,7 @@ export async function GET(
       p = provider((await params).provider);
     if (!configured(p))
       throw new ApiError(
-        'Complete this provider’s setup in Karina before connecting.',
+        'This connection is not available yet. Resonance needs to finish its service setup.',
         503,
       );
     if (new URL(request.url).origin !== setting('RESONANCE_ORIGIN'))

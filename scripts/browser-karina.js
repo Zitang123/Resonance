@@ -47,18 +47,29 @@ async (existingPage) => {
       'artistplays command missing',
     );
     await page
-      .getByRole('button', { name: 'Set up Karina', exact: true })
+      .getByRole('button', { name: 'Connect your music', exact: true })
       .click();
     await page.getByRole('dialog').waitFor();
     check(
-      await page.getByText('User Install', { exact: true }).isVisible(),
-      'user-install setup missing',
+      await page
+        .getByRole('heading', { name: 'Connect Spotify', exact: true })
+        .isVisible(),
+      'Spotify connection guide missing',
     );
     check(
       await page
-        .getByText('Background scheduler', { exact: false })
+        .getByRole('heading', {
+          name: 'Add your listening history',
+          exact: true,
+        })
         .isVisible(),
-      'scheduler readiness missing',
+      'history connection guide missing',
+    );
+    check(
+      !(await page
+        .getByRole('link', { name: 'Create Last.fm API account' })
+        .count()),
+      'ordinary visitors must not create API applications',
     );
     await page.screenshot({ path: 'output/playwright/karina-setup.png' });
     await page.keyboard.press('Escape');

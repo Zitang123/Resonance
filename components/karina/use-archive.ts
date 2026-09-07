@@ -15,8 +15,6 @@ export type ArchiveStatus = {
   } | null;
   schedulerLastSeen: number | null;
   installUrl: string | null;
-  interactionsUrl: string;
-  callbacks: Record<string, string>;
 };
 export async function api<T>(url: string, data?: unknown): Promise<T> {
   const response = await fetch(url, {

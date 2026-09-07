@@ -13,6 +13,7 @@ import {
   exchangeDiscord,
   exchangeLastfm,
   exchangeSpotify,
+  getSpotifyIdentity,
   ProviderError,
 } from '@/lib/karina/providers';
 import { providerConfig, seal, unseal } from '@/lib/karina/accounts';
@@ -72,8 +73,9 @@ export async function GET(
           unseal<string>(owner, p, stored.verifier),
           config,
         );
-        externalId = owner;
-        name = 'Spotify account';
+        const identity = await getSpotifyIdentity(tokens.accessToken);
+        externalId = identity.accountId;
+        name = identity.displayName;
         credentials = seal(owner, p, tokens);
       }
       stage = 'archive-ownership';
@@ -112,6 +114,19 @@ export async function GET(
         );
       stage = 'connection-save';
       const db = database();
+      const otherOwner = await db
+        .prepare(
+          'SELECT 1 AS present FROM connections WHERE provider=? AND external_id=? AND user_id<>? LIMIT 1',
+        )
+        .bind(p, externalId, owner)
+        .first();
+      if (otherOwner) {
+        result = 'account-conflict';
+        throw new ApiError(
+          'This provider account is already linked elsewhere.',
+          409,
+        );
+      }
       const committed = await db.batch(
         linkStatements({
           owner,
@@ -126,6 +141,19 @@ export async function GET(
       result = committed[0].meta.changes ? 'success' : 'cancelled';
     }
   } catch (error) {
+    if (
+      result === 'error' &&
+      providerName === 'spotify' &&
+      error instanceof ProviderError
+    )
+      result =
+        error.code === 'forbidden'
+          ? 'spotify-access'
+          : error.code === 'rate_limited'
+            ? 'provider-busy'
+            : error.code === 'unauthorized'
+              ? 'expired'
+              : 'error';
     // Only fixed classifications; never log exceptions, URLs, tokens or identities.
     console.error('Karina account connection failed', {
       provider: providerName,

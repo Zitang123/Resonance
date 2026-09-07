@@ -7,9 +7,10 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const bundle = await build({
   stdin: {
     contents: `
-      import { exchangeDiscord } from './lib/karina/providers.ts';
+      import { exchangeDiscord, getSpotifyIdentity } from './lib/karina/providers.ts';
       export default { async fetch(request) {
         try {
+          if (new URL(request.url).pathname === '/spotify') return Response.json(await getSpotifyIdentity('synthetic-spotify-token'));
           const identity = await exchangeDiscord(new URL(request.url).pathname.slice(1), {
             origin: 'https://resonance.example', discordClientId: '123456',
             discordClientSecret: 'synthetic-test-secret'
@@ -42,6 +43,7 @@ const mf = new Miniflare(
         compatibilityDate: '2026-09-03',
         script: `export default { async fetch(request) {
         const url = new URL(request.url);
+        if (url.hostname === 'api.spotify.com' && url.pathname === '/v1/me') return Response.json({ account_id: 'stable_spotify_user', id: 'mutable-name', display_name: 'Spotify test listener', email: 'not-retained@example.com' });
         if (url.hostname !== 'discord.com') return Response.json({ access_token: 'leaked-test-token', token_type: 'Bearer', scope: 'identify' });
         if (url.pathname.endsWith('/token')) {
           const body = new URLSearchParams(await request.text());
@@ -62,6 +64,12 @@ try {
   const redirect = await mf.dispatchFetch('https://test.example/redirect');
   assert.equal(redirect.status, 502);
   assert.deepEqual(await redirect.json(), { code: 'unavailable' });
+  const spotify = await mf.dispatchFetch('https://test.example/spotify');
+  assert.equal(spotify.status, 200);
+  assert.deepEqual(await spotify.json(), {
+    accountId: 'stable_spotify_user',
+    displayName: 'Spotify test listener',
+  });
   process.stdout.write(
     'Native Worker OAuth exchange and redirect rejection passed.\n',
   );

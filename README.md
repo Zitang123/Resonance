@@ -2,7 +2,7 @@
 
 **Find your next listen. Remember why it mattered.**
 
-[Open the private app](https://resonance-listening-room.zitang123.chatgpt.site)
+[Open Resonance](https://resonance-listening-room.zitang123.chatgpt.site)
 
 A private music companion built with TypeScript, React, and Vinext. Capture recommendations, choose a listen, record a memory, and give music a place in a capsule. No streaming account or AI calls are required for the core application.
 
@@ -36,17 +36,17 @@ npm run start -- --port 4173
 - Motion: procedural standing-wave ribbon, spring-driven artwork tilt and reflection, decorative scroll parallax, native view-transition continuity, short route/control transitions, reduced-motion and lower-effects modes.
 
 - Listening: an account-backed archive, consent-based imports, source-separated statistics, interactive 3D hour/weekday chart, rankings, trends, diversity, repetition, streaks and chart/history exports.
-- Karina: user-installed Discord slash commands for DMs, group chats and eligible servers; public listening embeds and PNG charts, private account controls, provider setup and resumable background sync. Developer credentials and the public relay are still required for live delivery.
+- Karina: user-installed Discord slash commands for DMs, group chats and eligible servers; public listening embeds and PNG charts, private account controls, website-based provider connections and resumable history sync. Discord identity linking, user installation and empty-archive replies are verified live in Karina’s own DM. Unattended history sync still needs its scheduler.
 
 ## Karina and the listening archive
 
 Resonance owns the archive, calculations and presentation. Last.fm is the current fallback history bridge for Spotify listening because Spotify's documented API access and developer policy do not support the unrestricted Spotify-only promise. The optional direct Spotify connection is gated display-only. The user explicitly authorized the bridge only where required; keep Resonance as the product identity.
 
-[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Secrets belong in the host's secret store; no credentials have been configured yet.
+[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Discord credentials are configured in the host’s secret store; Spotify and Last.fm operator setup is pending. Visitors authorize their own connections through Resonance and never supply developer keys. Direct Spotify playback appears in the website and Karina’s `/fm` once configured; it is not archived as listening statistics.
 
 ## Local data and privacy
 
-Crate, Tonight, Atlas and Capsules data is stored in this browser under `resonance:personal:v1` and `resonance:sample:v1`. It is not synced or uploaded. Clearing browser/site data removes it. **Export a backup in Settings regularly.** Different browsers, devices, ports and deployment domains have separate collections; export/restore moves your collection between them. The private hosted preview has a host-level sign-in gate; the new listening archive uses a separate authenticated D1 database. Local Sites sign-in simulates identity for development. Imported listening history is uploaded only after explicit consent; the crate and private journal remain on the device.
+Crate, Tonight, Atlas and Capsules data is stored in this browser under `resonance:personal:v1` and `resonance:sample:v1`. It is not synced or uploaded. Clearing browser/site data removes it. **Export a backup in Settings regularly.** Different browsers, devices, ports and deployment domains have separate collections; export/restore moves your collection between them. The website is public; account archives and provider connections require sign-in and are isolated in D1 by the trusted user identity. Local Sites sign-in simulates identity for development. Imported listening history is uploaded only after explicit consent; the crate and private journal remain on the device. See the public [data-use page](https://resonance-listening-room.zitang123.chatgpt.site/privacy).
 
 The schema starts at version 1. Backups reject unsupported future versions, invalid nested data, unsafe URLs and broken references before replacing anything. A future schema change must add a deliberate migration rather than weakening validation. Failed writes leave the last saved collection unchanged. Corrupted raw storage can be downloaded from Settings before explicit recovery.
 

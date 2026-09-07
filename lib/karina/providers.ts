@@ -86,6 +86,7 @@ const ENDPOINTS = {
   discordToken: 'https://discord.com/api/v10/oauth2/token',
   discordUser: 'https://discord.com/api/v10/users/@me',
   spotifyToken: 'https://accounts.spotify.com/api/token',
+  spotifyIdentity: 'https://api.spotify.com/v1/me',
   spotifyNowPlaying: 'https://api.spotify.com/v1/me/player/currently-playing',
 } as const;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
@@ -492,6 +493,37 @@ export interface SpotifyTokens {
   /** Fixed origin for the six-month refresh lifetime. Refreshing never resets these dates. */
   authorizedAt: number;
   refreshExpiresAt: number;
+}
+
+/** Only the verified immutable account identity is retained; email is never requested. */
+export async function getSpotifyIdentity(
+  accessToken: string,
+  options: RequestOptions = {},
+): Promise<{ accountId: string; displayName: string }> {
+  const data = await requestJson(
+    'spotify',
+    ENDPOINTS.spotifyIdentity,
+    {
+      headers: { Authorization: `Bearer ${required('spotify', accessToken)}` },
+    },
+    options,
+  );
+  if (
+    !record(data) ||
+    typeof data.account_id !== 'string' ||
+    !/^[A-Za-z0-9_-]{1,200}$/.test(data.account_id)
+  )
+    throw new ProviderError('spotify', 'invalid_response');
+  return {
+    accountId: data.account_id,
+    displayName:
+      typeof data.display_name === 'string' && data.display_name.trim()
+        ? data.display_name
+            .replace(/[\u0000-\u001f\u007f]/g, '')
+            .trim()
+            .slice(0, 200)
+        : 'Spotify listener',
+  };
 }
 
 function sixMonthsAfter(timestamp: number): number {
