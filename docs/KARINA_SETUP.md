@@ -27,7 +27,7 @@ Command output follows familiar .fmbot conventions—now-playing embeds, numbere
 
 ## 1. Website account and database
 
-The existing website is owner-private. It uses Sites’ trusted `oai-authenticated-user-id` identity, not a user ID supplied by the browser. `/signin-with-chatgpt` is the sign-in entry point. The server-backed archive is separate from the existing device-local crate and journal; those are never uploaded automatically.
+The website is public with the owner's explicit approval. Account archives require sign-in and use Sites’ trusted `oai-authenticated-user-id` identity, not a user ID supplied by the browser. `/signin-with-chatgpt` is the sign-in entry point. The server-backed archive is separate from the existing device-local crate and journal; those are never uploaded automatically.
 
 Database binding: `DB` in `.openai/hosting.json`. Schema: `db/schema.ts`. Generated migrations: `drizzle/`. Sites applies the packaged migrations on publication. Never edit an applied migration; generate another migration for a change.
 
@@ -41,7 +41,7 @@ npm run dev -- --hostname 127.0.0.1
 
 For local provider tests, copy `.dev.vars.example` to `.dev.vars` and fill it privately. That file is ignored by Git. Local Sites sign-in is a development simulation, not production identity verification. If running outside Sites, replace the trusted-header boundary with a real authenticating gateway; never expose a bare server that accepts caller-supplied identity headers.
 
-For friends to link their accounts, explicitly grant them website access through Sites sharing. Discord installation alone does not grant website access. Broad public sign-up and audience changes are not part of this private pilot.
+Friends can visit the public website, then sign in to link their own accounts. Discord installation and Resonance account linking are separate steps. Public website access does not expose another user's archive or grant provider access; developer-app allowlists and approvals still apply.
 
 ## 2. Create a Discord application
 
@@ -116,7 +116,7 @@ Generate keys with a password manager or `crypto.randomBytes(32).toString('hex')
 
 ## 5. Public relay and background job
 
-Discord cannot reach an owner-private Sites page anonymously. The separate, small Cloudflare Worker in `karina-worker/` is the public receiver. It validates Ed25519 over the exact request timestamp and raw body before forwarding to the fixed private interaction path. Resonance verifies the signature again, resolves the actual invoking Discord user and deduplicates interaction IDs.
+The separate, small Cloudflare Worker in `karina-worker/` is the Discord receiver and background scheduler. It validates Ed25519 over the exact request timestamp and raw body before forwarding to the fixed Resonance interaction path. Resonance verifies the signature again, resolves the actual invoking Discord user and deduplicates interaction IDs. The relay supports Sites authentication if website access is later restricted; public website access does not remove the scheduler requirement for unattended history updates.
 
 Use your own Cloudflare account and review its current quotas. The Worker has no signup or billing dependency embedded in Resonance. Store secrets in Wrangler/Cloudflare secret settings:
 
@@ -127,11 +127,11 @@ npx wrangler secret put KARINA_JOB_SECRET --config karina-worker/wrangler.jsonc
 npx wrangler deploy --config karina-worker/wrangler.jsonc
 ```
 
-`SITES_BYPASS_TOKEN` is the Site’s machine-access bearer token provided by the hosting integration, sent only in `OAI-Sites-Authorization: Bearer …`. It is a server credential with access to the private Site. Transfer it directly between trusted secret stores, never into the browser, repository, public URL or chat message. `KARINA_JOB_SECRET` separately authorizes only the scheduled job route. Do not expose other relay routes or allow arbitrary forwarding destinations.
+`SITES_BYPASS_TOKEN` is the Site’s machine-access bearer token provided by the hosting integration, sent only in `OAI-Sites-Authorization: Bearer …`. It is a server credential with access to the Site, including when website access is restricted. Transfer it directly between trusted secret stores, never into the browser, repository, public URL or chat message. `KARINA_JOB_SECRET` separately authorizes only the scheduled job route. Do not expose other relay routes or allow arbitrary forwarding destinations.
 
-The relay’s five-minute cron calls `/api/karina/jobs`. The private backend uses D1 job leases and a shared rate-limit timestamp. Normal Discord commands acknowledge with a defer and finish by editing the original interaction response within Discord’s token window. Errors after a public defer remain generic because Discord cannot change that response into an ephemeral one. No unsolicited messages or proactive DM notifications are sent.
+The relay’s five-minute cron calls `/api/karina/jobs`. The authenticated job handler uses D1 job leases and a shared rate-limit timestamp. Normal Discord commands acknowledge with a defer and finish by editing the original interaction response within Discord’s token window. Errors after a public defer remain generic because Discord cannot change that response into an ephemeral one. No unsolicited messages or proactive DM notifications are sent.
 
-Use a valid signed Discord test to verify public receiver → private Site → response. With no Discord application or credentials yet, that live delivery remains unverified; mock protocol tests are not a substitute.
+Use a valid signed Discord test to verify public receiver → Resonance → response. With no Discord application or credentials yet, that live delivery remains unverified; mock protocol tests are not a substitute.
 
 ## 6. Optional Spotify display and archive limits
 
@@ -147,7 +147,7 @@ References: [authorization](https://developer.spotify.com/documentation/web-api/
 
 The interface applies readable hierarchy, restrained surfaces and purposeful motion informed by [OpenAI’s frontend guidance](https://developers.openai.com/api/docs/guides/frontend-prompt). It uses original mathematical graphics rather than pretending to analyze audio. The 3D chart is driven only by explicitly sourced timestamp counts, is manipulable by pointer and keyboard, and has a table equivalent. No OpenAI API or paid AI call is required.
 
-Run `npm run check`, `npm run build`, and the browser suites described in `docs/QA.md`. Test provider authentication with real credentials in a development application before inviting users. Do not describe the private pilot as a production-tested public service.
+Run `npm run check`, `npm run build`, and the browser suites described in `docs/QA.md`. Test provider authentication with real credentials in a development application before inviting users. Public website publication is not proof that live provider connections or Discord delivery have been tested.
 
 
 Large archive exports fetch 1,000 records per request to avoid per-invocation database query limits. Browsers supporting the File System Access API write directly to the selected file; others create a download in browser memory and are subject to device memory limits. Export from a desktop browser for very large archives. Original history formats are identified explicitly on import; exporting does not grant permission to reclassify restricted provider data.

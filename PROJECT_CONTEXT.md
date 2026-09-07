@@ -22,7 +22,7 @@ Spotify link handoff remains available; optional encrypted OAuth supports curren
 4. Read docs/QA.md for evidence and unresolved limits.
 5. Commit and push meaningful verified milestones to the configured origin; do not force-push.
 
-The Sites manifest owns one project ID. Reuse it; do not create duplicate sites. The hosted preview is owner-private. Public release, provider approvals and demand remain open questions. No billing was added.
+The Sites manifest owns one project ID. Reuse it; do not create duplicate sites. On 7 September 2026, the user explicitly approved keeping the existing public access and publishing the Karina update. Account archives still require authentication and are scoped to their owner. Live provider setup, provider approvals and demand remain open questions. No billing was added.
 
 ## Karina expansion, 7 September 2026
 

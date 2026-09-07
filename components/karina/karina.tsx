@@ -509,7 +509,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
               <h3>Give Discord a public receiver</h3>
               <p>
                 Deploy the included Karina relay Worker. It checks Discord
-                signatures and forwards commands to this private site. Its
+                signatures and forwards commands to Resonance. Its
                 scheduled job keeps history updating when the site is closed.
               </p>
               <p>
@@ -518,9 +518,9 @@ export function Karina({ onListening }: { onListening: () => void }) {
                 register the included global commands.
               </p>
               <p>
-                Your current website is an owner-private pilot. Other people
-                need access to Resonance before they can link their accounts;
-                installing Karina does not grant website access.
+                Sign in to Resonance to link your own listening account.
+                Installing Karina in Discord is a separate step; it does not
+                connect your listening history automatically.
               </p>
             </div>
           </li>
