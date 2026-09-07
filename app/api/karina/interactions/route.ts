@@ -93,6 +93,7 @@ export async function POST(request: Request) {
 }
 async function finish(command: ParsedCommandInteraction, owner: string) {
   const endpoint = `https://discord.com/api/v10/webhooks/${command.applicationId}/${encodeURIComponent(command.token)}/messages/@original`;
+  let stage = 'archive-read';
   try {
     const linked = await connection(owner, 'lastfm');
     const source = linked
@@ -194,6 +195,7 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
         png = renderWeekChart(signals.weekHours, `${snapshot.source} / UTC`);
     }
     const reply = commandReply(command, snapshot).data;
+    stage = 'reply-delivery';
     if (png) {
       const form = new FormData();
       form.set(
@@ -221,6 +223,7 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
         body: JSON.stringify(reply),
       });
   } catch {
+    console.error('Karina command failed', { command: command.command, stage });
     // A public defer cannot become private. Keep the original error generic; no account details.
     try {
       await send(endpoint, {
@@ -239,10 +242,23 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
   }
 }
 async function send(url: string, init: RequestInit) {
-  const result = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!result.ok) throw Error('Discord delivery failed');
+  let receivedResponse = false;
+  try {
+    const result = await fetch(url, {
+      ...init,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(12000),
+    });
+    receivedResponse = true;
+    if (!result.ok) {
+      // Never log the webhook URL, token, response text or account details.
+      console.error('Karina reply delivery failed', { status: result.status });
+      await result.body?.cancel();
+      throw Error('Discord delivery failed');
+    }
+    await result.body?.cancel();
+  } catch {
+    if (!receivedResponse) console.error('Karina reply transport failed');
+    throw Error('Discord delivery failed');
+  }
 }
