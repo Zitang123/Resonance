@@ -55,7 +55,8 @@ const mf = new Miniflare(
       {name:'正在播放',artist:{'#text':'Test artist'},album:{'#text':''},'@attr':{nowplaying:'true'}},
       {name:'星星',artist:{'#text':'Test artist'},album:{'#text':'Test album'},date:{uts:'1788739200'}},
     ] : [{name:'Earlier song',artist:{'#text':'Another artist'},album:{'#text':''},date:{uts:'1788652800'}}];
-    return Response.json({recenttracks: {track, '@attr': {page:String(page),totalPages:'2',total:'2'}}});
+    const expanded=track.flatMap(t=>t.date?Array.from({length:200},(_,i)=>({...t,date:{uts:String(Number(t.date.uts)+i)}})):[t]);
+    return Response.json({recenttracks: {track:expanded, '@attr': {page:String(page),totalPages:'2',total:'400'}}});
   }};`,
       },
     ],
@@ -91,10 +92,10 @@ try {
   const first = await sync();
   assert.equal(first.status, 200);
   assert.equal(first.complete, false);
-  assert.match(first.message, /Saved 1 new listens/);
+  assert.match(first.message, /Saved 200 new listens/);
   const second = await sync();
   assert.equal(second.complete, true);
-  assert.match(second.message, /Saved 1 new listens/);
+  assert.match(second.message, /Saved 200 new listens/);
   assert.equal(
     (await db.prepare('SELECT phase FROM sync_jobs').first()).phase,
     'incremental',
@@ -102,7 +103,7 @@ try {
   const stats = await (
     await mf.dispatchFetch('https://test.example/stats?owner=alice')
   ).json();
-  assert.equal(stats.count, 2);
+  assert.equal(stats.count, 400);
   assert.equal(stats.uniqueArtists, 2);
   assert.equal(stats.totalDurationMs, null);
   const other = await (
@@ -113,7 +114,7 @@ try {
   assert.match(repeated.message, /Saved 0 new listens/);
   assert.equal(
     (await db.prepare('SELECT count(*) n FROM listens').first()).n,
-    2,
+    400,
   );
   assert.ok(
     (

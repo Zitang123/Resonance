@@ -69,16 +69,12 @@ export async function saveRecords(
       r.artist,
       r.album,
       r.durationMs,
-      ...(guard ? [userId, guard.connectionUpdatedAt] : []),
     ]);
+    if (guard) values.push(userId, guard.connectionUpdatedAt);
+    const rows = chunk.map(() => '(?,?,?,?,?,?,?,?)').join(',');
     const insertion = guard
-      ? chunk
-          .map(
-            () =>
-              "SELECT ?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM connections WHERE user_id=? AND provider='lastfm' AND updated_at=?)",
-          )
-          .join(' UNION ALL ')
-      : `VALUES ${chunk.map(() => '(?,?,?,?,?,?,?,?)').join(',')}`;
+      ? `SELECT * FROM (VALUES ${rows}) WHERE EXISTS (SELECT 1 FROM connections WHERE user_id=? AND provider='lastfm' AND updated_at=?)`
+      : `VALUES ${rows}`;
     queries.push(
       db
         .prepare(
