@@ -52,7 +52,7 @@ Friends can visit the public website, then sign in to link their own accounts. D
    `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/discord`
 
 4. Copy the Application ID, Public Key and OAuth2 Client Secret into the host’s secret/environment settings below. Never paste secrets into chat or commit them.
-5. Deploy the public relay in step 5, then set **Interactions Endpoint URL** to `https://YOUR-WORKER.workers.dev/interactions`. Discord checks the signed PING response before accepting it.
+5. For the current public website, set **Interactions Endpoint URL** to `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/interactions` after configuring and publishing the Discord keys. Discord checks the signed PING response before accepting it. The site validates the signature itself; no separate Cloudflare account is needed for Discord commands. Use the relay in step 5 if you later restrict website access, or want its background scheduler.
 6. Register commands globally after User Install is enabled. The included definitions use `integration_types: [1]` and `contexts: [0, 1, 2]`: servers, bot DMs and private channels/group DMs.
 
 Preview the registration payload:
@@ -114,9 +114,9 @@ Manage production settings in Sites; local `.env`/`.dev.vars` files do not confi
 
 Generate keys with a password manager or `crypto.randomBytes(32).toString('hex')` in a private local console. Do not print them in shared logs. Losing or rotating `KARINA_TOKEN_KEY` makes existing encrypted connections unreadable; disconnect and reauthorize or implement a deliberate key migration. Never silently generate a new key at runtime.
 
-## 5. Public relay and background job
+## 5. Optional relay and background job
 
-The separate, small Cloudflare Worker in `karina-worker/` is the Discord receiver and background scheduler. It validates Ed25519 over the exact request timestamp and raw body before forwarding to the fixed Resonance interaction path. Resonance verifies the signature again, resolves the actual invoking Discord user and deduplicates interaction IDs. The relay supports Sites authentication if website access is later restricted; public website access does not remove the scheduler requirement for unattended history updates.
+The public website can receive Discord commands directly. The separate, small Cloudflare Worker in `karina-worker/` adds a background scheduler and, when needed, a receiver for a private website. Its receiver validates Ed25519 over the exact request timestamp and raw body before forwarding to the fixed Resonance interaction path. Resonance verifies the signature again, resolves the actual invoking Discord user and deduplicates interaction IDs. The relay supports Sites authentication if website access is later restricted; public website access does not remove the scheduler requirement for unattended history updates.
 
 Use your own Cloudflare account and review its current quotas. The Worker has no signup or billing dependency embedded in Resonance. Store secrets in Wrangler/Cloudflare secret settings:
 

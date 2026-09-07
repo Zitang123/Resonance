@@ -26,6 +26,10 @@ The Sites manifest owns one project ID. Reuse it; do not create duplicate sites.
 
 ## Karina expansion, 7 September 2026
 
+### Next phase requested after Discord is working
+
+Finish and verify the current Discord connection before starting this phase. The user explicitly requested a normal multi-user Resonance service: each visitor reaches their own signed-in account or a clear sign-in/create-account flow; individual collections, journals, archives and connections persist separately. Investigate Google, Apple and Spotify sign-in using verified provider support, with safe account linking and recovery. Ordinary users must never create developer applications or supply API keys; deployment-wide provider setup belongs to the operator. Keep provider consent simple and distinguish sign-in from permission to import listening data. Strengthen and verify account isolation, authorization, session security, privacy defaults, export and deletion. Preserve existing device-local work through an explicit migration flow. Do not ship fake social-login buttons or claim a provider works before its credentials and live flow are verified. The user permits a bounded subagent assignment for this later phase.
+
 The user wants a Resonance-owned equivalent to Last.fm/.fmbot including free history-driven features, not a Last.fm client. They explicitly allowed Last.fm as a fallback where Spotify alone cannot provide the promised features. Current Spotify policy restricts derived statistics and API access does not yield lifetime history; use the Last.fm adapter as a replaceable history bridge, while Resonance implements storage/analytics/visuals. Do not pretend the bridge is a direct Spotify connection.
 
 Karina must work in DMs, group DMs and eligible servers using global USER_INSTALL commands (integration_types [1], contexts [0,1,2]). Listening/statistics/chart replies are PUBLIC in the invoking conversation. /connect, /privacy and /sync controls remain private. No arbitrary other-user lookup, unsolicited messages, or message-content intents.

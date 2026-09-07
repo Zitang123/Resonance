@@ -425,7 +425,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
         open={setup}
         onClose={() => setSetup(false)}
         title="A home for Karina."
-        description="Resonance is your music archive. Karina shares it in Discord. Set up your listening source and developer accounts once."
+        description="Connect Karina to Discord first. Add a listening source when you’re ready to share your music."
         wide
       >
         <ol className="setup-steps">
@@ -484,10 +484,10 @@ export function Karina({ onListening }: { onListening: () => void }) {
             <div>
               <h3>Store keys securely</h3>
               <p>
-                Use the host’s secret settings for your Discord client ID,
-                client secret and public key; Last.fm API key and shared secret;
-                and the generated Karina encryption and job keys. Never put
-                secrets into chat or browser code.
+                Set the website address and Discord application ID, public key,
+                client secret and Karina encryption key in the host’s settings.
+                Add listening-provider and scheduler keys when you enable those
+                connections. Never put secrets into chat or browser code.
               </p>
               <p>
                 Enable Last.fm after reviewing its API conditions for this
@@ -506,16 +506,17 @@ export function Karina({ onListening }: { onListening: () => void }) {
           <li>
             <span>04</span>
             <div>
-              <h3>Give Discord a public receiver</h3>
+              <h3>Let Discord reach Karina</h3>
               <p>
-                Deploy the included Karina relay Worker. It checks Discord
-                signatures and forwards commands to Resonance. Its
-                scheduled job keeps history updating when the site is closed.
+                For this public website, set Discord’s Interactions Endpoint URL
+                to the address below. Resonance checks Discord’s signature on
+                every command. Save it after the Discord keys are configured,
+                then register the included global commands.
               </p>
+              <CopyLine value={status?.interactionsUrl || ''} />
               <p>
-                Set Discord’s Interactions Endpoint URL to{' '}
-                <code>https://your-worker.workers.dev/interactions</code>, then
-                register the included global commands.
+                The optional relay adds scheduled history updates while you’re
+                away. It is also needed if you make the whole website private.
               </p>
               <p>
                 Sign in to Resonance to link your own listening account.

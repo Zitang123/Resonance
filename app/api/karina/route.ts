@@ -82,6 +82,7 @@ export async function GET(request: Request) {
       sources,
       sync,
       schedulerLastSeen: heartbeat?.value || null,
+      interactionsUrl: `${url.origin}/api/karina/interactions`,
       installUrl: setting('DISCORD_CLIENT_ID')
         ? `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(setting('DISCORD_CLIENT_ID'))}&scope=applications.commands&integration_type=1`
         : null,
