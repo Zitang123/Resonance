@@ -2,12 +2,14 @@ import { verifyDiscord } from '../lib/karina/protocol';
 type RelayEnvironment = {
   RESONANCE_ORIGIN: string;
   DISCORD_PUBLIC_KEY: string;
-  SITES_BYPASS_TOKEN: string;
+  SITES_BYPASS_TOKEN?: string;
   KARINA_JOB_SECRET: string;
 };
 function headers(env: RelayEnvironment) {
   return {
-    'OAI-Sites-Authorization': `Bearer ${env.SITES_BYPASS_TOKEN}`,
+    ...(env.SITES_BYPASS_TOKEN
+      ? { 'OAI-Sites-Authorization': `Bearer ${env.SITES_BYPASS_TOKEN}` }
+      : {}),
     Authorization: `Bearer ${env.KARINA_JOB_SECRET}`,
   };
 }

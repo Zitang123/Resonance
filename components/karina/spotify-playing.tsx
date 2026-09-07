@@ -14,7 +14,7 @@ type Playback = {
 export function SpotifyPlaying({
   onConnectionChange,
 }: {
-  onConnectionChange: () => Promise<void>;
+  onConnectionChange: () => Promise<unknown>;
 }) {
   const [playing, setPlaying] = useState<Playback | null>(null);
   const [busy, setBusy] = useState(true);

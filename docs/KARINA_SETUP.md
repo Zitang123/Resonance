@@ -84,11 +84,13 @@ The preferred long-term product is direct Spotify connection. Under the currentl
 2. Review the [Last.fm API terms](https://www.last.fm/api/tos) for this deployment. They include conditions on commercial use, attribution and public pages; obtain applicable permission before public rollout. Set `LASTFM_ENABLED=true` after this review.
 3. To record Spotify listening through Last.fm, use [Last.fm Applications settings](https://www.last.fm/settings/applications) to connect Spotify there.
 4. In Resonance, choose **Connect Last.fm**. The signed `auth.getSession` exchange establishes the account identity. Credentials are encrypted on the server.
-5. Run **Sync next page** or deploy the scheduled relay. The first pass reads existing history in pages of 200, with a fixed upper timestamp. Charts explicitly show that backfill is incomplete.
+5. Choose **Sync listening history**. While the page stays open, Resonance imports successive pages automatically. **Pause import** stops requests from this page; saved pages remain and **Sync listening history** resumes. The first pass reads existing history in pages of 200, with a fixed upper timestamp. Charts explicitly show that backfill is incomplete. The scheduled relay can continue when the page is closed.
 
 After backfill, sync checks a two-day overlap from the newest recorded timestamp, deduplicates exact records and advances its durable cursor. Old scrobbles added or edited outside that window are not automatically reconciled. To rebuild a corrected archive, export first, delete the Last.fm archive, reconnect and backfill. Deletion stops that connection and invalidates pending authorization so it cannot silently restore the data.
 
 The scheduled relay processes one due page every five minutes. Large initial archives take time; the website can request extra pages subject to the shared provider cooldown. Hosting/database failure does not advance the cursor. Rate limits delay retries. The UI shows the last successful page and the latest scheduler heartbeat; it never calls an unconfigured scheduler “live.”
+
+The API terms include a 100 MB application-wide Last.fm Data allowance. Migration 0003 adds an atomic 80 MB budget for normalized UTF-8 archive records with conservative row overhead, leaving headroom for other Last.fm data. It applies across accounts and both upload and connected imports. Duplicate records do not consume the budget twice; deletion releases capacity. A full budget pauses new imports without deleting existing history, and scheduled retries back off for a day. This guard is not permission to exceed the provider's allowance or to launch a commercial/public data service; larger usage and applicable public-page use require the provider's written permission.
 
 We cannot recover listening that Last.fm never recorded. Last.fm’s current-playing marker is transient and excluded from historical counts. Actual listening minutes are unknown for these API scrobbles.
 
@@ -123,12 +125,11 @@ Use your own Cloudflare account and review its current quotas. The Worker has no
 
 ```sh
 npx wrangler secret put DISCORD_PUBLIC_KEY --config karina-worker/wrangler.jsonc
-npx wrangler secret put SITES_BYPASS_TOKEN --config karina-worker/wrangler.jsonc
 npx wrangler secret put KARINA_JOB_SECRET --config karina-worker/wrangler.jsonc
 npx wrangler deploy --config karina-worker/wrangler.jsonc
 ```
 
-`SITES_BYPASS_TOKEN` is the Site’s machine-access bearer token provided by the hosting integration, sent only in `OAI-Sites-Authorization: Bearer …`. It is a server credential with access to the Site, including when website access is restricted. Transfer it directly between trusted secret stores, never into the browser, repository, public URL or chat message. `KARINA_JOB_SECRET` separately authorizes only the scheduled job route. Do not expose other relay routes or allow arbitrary forwarding destinations.
+For the current public website, omit `SITES_BYPASS_TOKEN`; the scheduler needs only the narrowly scoped `KARINA_JOB_SECRET`. If the Site later becomes private, configure the optional `SITES_BYPASS_TOKEN` from the hosting integration. It is sent only in `OAI-Sites-Authorization: Bearer …` and grants broader Site access. Transfer it directly between trusted secret stores, never into the browser, repository, public URL or chat message. Do not expose other relay routes or allow arbitrary forwarding destinations.
 
 The relay’s five-minute cron calls `/api/karina/jobs`. The authenticated job handler uses D1 job leases and a shared rate-limit timestamp. Normal Discord commands acknowledge with a defer and finish by editing the original interaction response within Discord’s token window. Errors after a public defer remain generic because Discord cannot change that response into an ephemeral one. No unsolicited messages or proactive DM notifications are sent.
 

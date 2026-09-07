@@ -1,6 +1,6 @@
 /* oxlint-disable next/no-html-link-for-pages -- Auth redirects and history downloads require top-level navigation. */
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Check,
@@ -69,9 +69,12 @@ export function Karina({ onListening }: { onListening: () => void }) {
   }
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
+    [syncing, setSyncing] = useState(false),
     [setup, setSetup] = useState(false),
     [remove, setRemove] = useState<string | null>(null),
     [deleting, setDeleting] = useState<string | null>(null);
+  const syncRun = useRef<AbortController | null>(null);
+  useEffect(() => () => syncRun.current?.abort(), []);
   useEffect(() => {
     const update = () => {
       const result = new URLSearchParams(location.search).get('connection');
@@ -100,19 +103,53 @@ export function Karina({ onListening }: { onListening: () => void }) {
   }, []);
   const lastfm = status?.connected.find((c) => c.provider === 'lastfm');
   async function sync() {
-    setBusy(true);
+    if (syncRun.current) return;
+    const run = new AbortController();
+    syncRun.current = run;
+    setSyncing(true);
     try {
-      const data = await api<{ message: string }>('/api/karina/sync', {});
-      setNotice(data.message);
-      await reload();
+      while (!run.signal.aborted) {
+        const data = await api<{ message: string; complete?: boolean }>(
+          '/api/karina/sync',
+          {},
+        );
+        if (run.signal.aborted) break;
+        setNotice(data.message);
+        const next = await reload();
+        if (
+          data.complete ||
+          !next?.connected.some((c) => c.provider === 'lastfm')
+        )
+          break;
+        // Follow the server's backoff; every completed page is already durable.
+        const delay = Math.max(2000, (next.sync?.next_run || 0) - Date.now());
+        await new Promise<void>((resolve) => {
+          const finish = () => {
+            clearTimeout(timer);
+            run.signal.removeEventListener('abort', finish);
+            resolve();
+          };
+          const timer = setTimeout(finish, Math.min(delay, 60000));
+          if (run.signal.aborted) finish();
+          else run.signal.addEventListener('abort', finish, { once: true });
+        });
+      }
     } catch (e) {
-      setNotice((e as Error).message);
+      if (!run.signal.aborted) setNotice((e as Error).message);
     } finally {
-      setBusy(false);
+      if (syncRun.current === run) syncRun.current = null;
+      setSyncing(false);
     }
+  }
+  function pauseSync() {
+    syncRun.current?.abort();
+    setNotice(
+      'Import paused here. Saved pages are kept; any connected background scheduler can still continue.',
+    );
   }
   async function disconnect() {
     if (!remove) return;
+    pauseSync();
     setBusy(true);
     try {
       await api('/api/karina', { action: 'disconnect', provider: remove });
@@ -131,6 +168,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
   }
   async function erase() {
     if (!deleting) return;
+    pauseSync();
     setBusy(true);
     try {
       await api('/api/karina', { action: 'delete', source: deleting });
@@ -325,16 +363,27 @@ export function Karina({ onListening }: { onListening: () => void }) {
           <div className="button-row">
             <button
               className="button"
-              disabled={!lastfm || busy}
+              disabled={!lastfm || busy || syncing}
               onClick={() => void sync()}
             >
               <RefreshCw size={15} />
-              {busy ? 'Updating…' : 'Sync next page'}
+              {syncing ? 'Importing history…' : 'Sync listening history'}
             </button>
+            {syncing && (
+              <button className="text-button" onClick={pauseSync}>
+                Pause import
+              </button>
+            )}
             <button className="text-button" onClick={onListening}>
               Open listening history <ArrowUpRight size={15} />
             </button>
           </div>
+          {syncing && (
+            <p className="chart-note">
+              Keep this page open while your history imports. You can pause and
+              resume without losing saved listens.
+            </p>
+          )}
         </section>
         <section className="discord-preview">
           <div className="discord-message-author">

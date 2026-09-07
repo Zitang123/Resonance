@@ -81,14 +81,27 @@ export async function saveRecords(
     queries.push(
       db
         .prepare(
-          `INSERT OR IGNORE INTO listens (user_id,id,source,played_at,title,artist,album,duration_ms) ${insertion}`,
+          `INSERT OR IGNORE INTO listens (user_id,id,source,played_at,title,artist,album,duration_ms) ${insertion} RETURNING id`,
         )
         .bind(...values),
     );
   }
   if (!queries.length) return 0;
-  const result = await db.batch(queries);
-  return result.reduce((sum, r) => sum + r.meta.changes, 0);
+  try {
+    const result = await db.batch(queries);
+    // RETURNING excludes bookkeeping rows changed by storage-budget triggers.
+    return result.reduce((sum, r) => sum + r.results.length, 0);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('lastfm_archive_limit')
+    )
+      throw new ApiError(
+        'Last.fm imports are paused because Resonance has reached its shared storage allowance. Your saved history is safe. The operator must resolve the allowance before imports can continue.',
+        507,
+      );
+    throw error;
+  }
 }
 export function periodStart(period: string) {
   const days: Record<string, number> = {

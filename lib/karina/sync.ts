@@ -121,6 +121,7 @@ export async function syncPage(owner: string) {
       };
     }
     return {
+      complete: done,
       message: `Saved ${inserted} new listens. ${done ? 'History is up to date through the last sync cutoff.' : `Next: archive page ${job.page + 1}.`}`,
     };
   } catch (error) {
@@ -129,9 +130,11 @@ export async function syncPage(owner: string) {
         ? error.message
         : 'Sync was interrupted. The next attempt will resume this page.';
     const delay =
-      error instanceof ProviderError && error.retryAfter
-        ? error.retryAfter * 1000
-        : 60000;
+      error instanceof ApiError && error.status === 507
+        ? 86400000
+        : error instanceof ProviderError && error.retryAfter
+          ? error.retryAfter * 1000
+          : 60000;
     if (error instanceof ProviderError && error.status === 429)
       await db
         .prepare('UPDATE system_state SET value=MAX(value,?) WHERE key=?')

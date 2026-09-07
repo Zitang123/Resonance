@@ -41,6 +41,7 @@ export function useArchive() {
       const next = await api<ArchiveStatus>('/api/karina');
       setStatus(next);
       setError('');
+      return next;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Connection unavailable.');
     }
