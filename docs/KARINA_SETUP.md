@@ -136,6 +136,8 @@ The current public installation uses the Site endpoint directly. Discord’s sig
 
 ## 6. Optional Spotify display and archive limits
 
+The current deployment uses Resonance application `9f0238ce5bba4ed0bbfabcda68fbfb92`. The owner approved the developer agreement and completed real Spotify authorization through the public Resonance website. The website and Karina's own DM verified empty playback and the same real playing track, artists and Spotify link. Live refresh and additional real users remain to be verified. The steps below are operator reference for another deployment, not work ordinary visitors must do.
+
 The deployment owner creates one Spotify developer application for Resonance, using the public site URL, `/privacy` data-use page and this exact callback:
 
 `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/spotify`

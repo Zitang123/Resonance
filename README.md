@@ -42,7 +42,7 @@ npm run start -- --port 4173
 
 Resonance owns the archive, calculations and presentation. Last.fm is the current fallback history bridge for Spotify listening because Spotify's documented API access and developer policy do not support the unrestricted Spotify-only promise. The optional direct Spotify connection is gated display-only. The user explicitly authorized the bridge only where required; keep Resonance as the product identity.
 
-[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Discord credentials are configured in the host’s secret store; Spotify and Last.fm operator setup is pending. Visitors authorize their own connections through Resonance and never supply developer keys. Direct Spotify playback appears in the website and Karina’s `/fm` once configured; it is not archived as listening statistics.
+[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Discord and Spotify are configured; the owner’s live Spotify website authorization, empty playback, and matching playing-track display in the website and Karina’s `/fm` are verified. Visitors authorize their own connections through Resonance and never supply developer keys. Spotify development access is limited to approved users. Direct Spotify playback is not archived as listening statistics. Last.fm operator setup and unattended history scheduling remain pending.
 
 ## Local data and privacy
 
