@@ -1,0 +1,6 @@
+{
+  "name":"karina-relay", "main":"worker.ts", "compatibility_date":"2026-09-07",
+  "compatibility_flags":["nodejs_compat"],
+  "triggers":{"crons":["*/5 * * * *"]},
+  "vars":{"RESONANCE_ORIGIN":"https://resonance-listening-room.zitang123.chatgpt.site"}
+}

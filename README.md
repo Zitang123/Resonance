@@ -12,6 +12,7 @@ Use Node 22.13+ for the application; Node 24+ for the built-in TypeScript test r
 
 ```sh
 npm ci
+npm run db:local
 npm run dev
 ```
 
@@ -23,7 +24,7 @@ npm run build
 npm run start -- --port 4173
 ```
 
-`check` runs TypeScript, focused lint, domain tests and offline-cache regression tests. `start` serves the built Worker locally. The production build enables the offline service worker; development intentionally does not cache source modules.
+`check` runs TypeScript, focused lint, domain, encryption, provider, Discord protocol, SQLite race-regression and offline-cache tests. `start` serves the built Worker locally. The production build enables the offline service worker; development intentionally does not cache source modules.
 
 ## What works
 
@@ -34,9 +35,18 @@ npm run start -- --port 4173
 - Recovery: separate personal/sample storage, 10-step session undo, strict versioned JSON backups, restore preview, storage failure handling, cross-tab updates and an optimistic stale-write check.
 - Motion: procedural standing-wave ribbon, spring-driven artwork tilt and reflection, decorative scroll parallax, native view-transition continuity, short route/control transitions, reduced-motion and lower-effects modes.
 
+- Listening: an account-backed archive, consent-based imports, source-separated statistics, interactive 3D hour/weekday chart, rankings, trends, diversity, repetition, streaks and chart/history exports.
+- Karina: user-installed Discord slash commands for DMs, group chats and eligible servers; public listening embeds and PNG charts, private account controls, provider setup and resumable background sync. Developer credentials and the public relay are still required for live delivery.
+
+## Karina and the listening archive
+
+Resonance owns the archive, calculations and presentation. Last.fm is the current fallback history bridge for Spotify listening because Spotify's documented API access and developer policy do not support the unrestricted Spotify-only promise. The optional direct Spotify connection is gated display-only. The user explicitly authorized the bridge only where required; keep Resonance as the product identity.
+
+[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Secrets belong in the host's secret store; no credentials have been configured yet.
+
 ## Local data and privacy
 
-Data is stored in this browser under `resonance:personal:v1` and `resonance:sample:v1`. It is not synced or uploaded. Clearing browser/site data removes it. **Export a backup in Settings regularly.** Different browsers, devices, ports and deployment domains have separate collections; export/restore moves your collection between them. The private hosted preview has a host-level sign-in gate; the local application has no account system.
+Crate, Tonight, Atlas and Capsules data is stored in this browser under `resonance:personal:v1` and `resonance:sample:v1`. It is not synced or uploaded. Clearing browser/site data removes it. **Export a backup in Settings regularly.** Different browsers, devices, ports and deployment domains have separate collections; export/restore moves your collection between them. The private hosted preview has a host-level sign-in gate; the new listening archive uses a separate authenticated D1 database. Local Sites sign-in simulates identity for development. Imported listening history is uploaded only after explicit consent; the crate and private journal remain on the device.
 
 The schema starts at version 1. Backups reject unsupported future versions, invalid nested data, unsafe URLs and broken references before replacing anything. A future schema change must add a deliberate migration rather than weakening validation. Failed writes leave the last saved collection unchanged. Corrupted raw storage can be downloaded from Settings before explicit recovery.
 
@@ -80,6 +90,6 @@ The runner uses `npx @playwright/cli`; install the browser support requested by 
 
 ## Current boundaries
 
-No Spotify OAuth, playlist writing, embedded playback, account sync, telemetry, billing, audio extraction, inferred listening minutes or AI pipeline. ListenBrainz history is partial and its date span is not a claim of continuous coverage. The sample's notes and activity are fictional, explicitly labelled and independently resettable.
+No playlist writing, embedded playback, collection/journal sync, telemetry, billing, audio extraction, inferred listening minutes or AI pipeline. Optional Spotify OAuth supports gated current-playing display only; Karina account linking and the separate listening archive are implemented with setup still required. ListenBrainz history is partial and its date span is not a claim of continuous coverage. The sample's notes and activity are fictional, explicitly labelled and independently resettable.
 
 See [project context](PROJECT_CONTEXT.md) before continuing development.

@@ -1,0 +1,153 @@
+# Karina: your own music companion for Discord
+
+Resonance owns the listening archive, statistical calculations and visualizations. Karina is its original, self-hostable Discord application. Last.fm is a replaceable history bridge, not the product or an account system for Resonance. Listening commands post publicly in the conversation where they are invoked. Account linking, privacy and sync status are private. It uses user installation, so commands can appear in DMs, group DMs and eligible server channels. Discord permissions still apply.
+
+The implementation has no subscription, billing or paid feature check. Hosting, storage and provider access still have their own quotas and conditions. This is a personal pilot, not a claim of complete .fmbot feature parity.
+
+## What is implemented
+
+| Feature | Status and source |
+| --- | --- |
+| `/fm`, `/nowplaying` | Current Last.fm now-playing marker; optional Spotify current-playing display. A recent completed listen is never substituted. |
+| `/recent` | Latest recorded listens from the caller’s archive. |
+| `/topartists`, `/toptracks`, `/topalbums` | Recorded play counts; 7, 30, 90, 365 days or all available history. |
+| `/artistplays artist:…` | All-archive play count and first/last recorded timestamps. |
+| `/discoveries period:…` | Artists first recorded during the selected period, with all-archive counts. This is not proof of the first time someone ever heard an artist. |
+| `/stats` | Plays, artists, tracks and observed coverage; duration stays unknown when absent. |
+| `/chart` | Original PNG heatmap attached publicly in Discord, plus the website link. No third-party artwork required. |
+| `/sync`, `/connect`, `/privacy` | Private account controls. |
+| Older Last.fm history | Paginated backfill of records Last.fm already holds, including before joining Resonance. No Resonance paywall. |
+| Ongoing history | Last.fm polling with a durable cursor, retry delay and job lease. Runs while the site is closed only after deploying the relay’s scheduler. |
+| Website statistics | Interactive 3D hour/weekday chart, table equivalent, daily trend, rankings, entropy, repetition, streaks, SVG download. |
+| Import/export | Last.fm JSON, ListenBrainz JSON and Resonance backup; explicit upload consent; repeat-safe IDs; paginated account export with direct-to-file writing where supported. |
+| Spotify lifetime export | Parser is tested, but upload/analytics are disabled pending verification of permission for this combined application. |
+| Remaining .fmbot parity | Cross-user taste/WhoKnows/crowns, album-art collages, lyrics, genre/country datasets, arbitrary custom date commands, milestone notifications and service-specific supporter extras are not implemented. |
+
+Command output follows familiar .fmbot conventions—now-playing embeds, numbered rankings, play counts and period/source footers—with original Karina presentation. It does not copy .fmbot’s assets or claim affiliation. Slash commands are used; reading arbitrary messages for dot-prefix commands is deliberately unnecessary for this version.
+
+## 1. Website account and database
+
+The existing website is owner-private. It uses Sites’ trusted `oai-authenticated-user-id` identity, not a user ID supplied by the browser. `/signin-with-chatgpt` is the sign-in entry point. The server-backed archive is separate from the existing device-local crate and journal; those are never uploaded automatically.
+
+Database binding: `DB` in `.openai/hosting.json`. Schema: `db/schema.ts`. Generated migrations: `drizzle/`. Sites applies the packaged migrations on publication. Never edit an applied migration; generate another migration for a change.
+
+Local setup:
+
+```sh
+npm install
+npm run db:local
+npm run dev -- --hostname 127.0.0.1
+```
+
+For local provider tests, copy `.dev.vars.example` to `.dev.vars` and fill it privately. That file is ignored by Git. Local Sites sign-in is a development simulation, not production identity verification. If running outside Sites, replace the trusted-header boundary with a real authenticating gateway; never expose a bare server that accepts caller-supplied identity headers.
+
+For friends to link their accounts, explicitly grant them website access through Sites sharing. Discord installation alone does not grant website access. Broad public sign-up and audience changes are not part of this private pilot.
+
+## 2. Create a Discord application
+
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and create **Karina**.
+2. Under **Installation**, enable **User Install**. Its default scope is **applications.commands**. No Administrator, bot scope, message-content intent or presence intent is needed for these HTTP slash commands.
+3. Under **OAuth2**, register the exact redirect shown in the in-app setup:
+
+   `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/discord`
+
+4. Copy the Application ID, Public Key and OAuth2 Client Secret into the host’s secret/environment settings below. Never paste secrets into chat or commit them.
+5. Deploy the public relay in step 5, then set **Interactions Endpoint URL** to `https://YOUR-WORKER.workers.dev/interactions`. Discord checks the signed PING response before accepting it.
+6. Register commands globally after User Install is enabled. The included definitions use `integration_types: [1]` and `contexts: [0, 1, 2]`: servers, bot DMs and private channels/group DMs.
+
+Preview the registration payload:
+
+```sh
+npm run karina:commands
+```
+
+Set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` in the shell environment, then explicitly register:
+
+```sh
+npm run karina:commands -- --publish
+```
+
+The script requests a client-credentials token with `applications.commands.update` and creates/updates only the named Karina commands. It does not bulk-delete unrelated commands. It sends no chat messages.
+
+In Resonance, **Connect Discord** verifies your identity with OAuth2 `identify` only. **Add to my Discord** is a separate `applications.commands` user installation. Run `/connect` in Discord if you have not linked yet. Global-command propagation and availability are controlled by Discord.
+
+References: [installation contexts](https://docs.discord.com/developers/resources/application#installation-context), [command contexts](https://docs.discord.com/developers/interactions/application-commands#interaction-contexts), [OAuth2](https://docs.discord.com/developers/topics/oauth2), [receiving interactions](https://docs.discord.com/developers/interactions/receiving-and-responding).
+
+## 3. Spotify listening through a temporary history bridge
+
+The preferred long-term product is direct Spotify connection. Under the currently documented Spotify API and developer policy, the promised unrestricted statistics and lifetime history cannot be delivered that way. The user has explicitly authorized Last.fm as a fallback. This adapter supplies records; every archive, calculation, chart and Karina command is implemented in Resonance. Export-based use is also possible without an active Last.fm connection.
+
+1. Create a [Last.fm API account](https://www.last.fm/api/account/create) for the intended use. Register the callback shown in Karina:
+
+   `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/lastfm`
+
+2. Review the [Last.fm API terms](https://www.last.fm/api/tos) for this deployment. They include conditions on commercial use, attribution and public pages; obtain applicable permission before public rollout. Set `LASTFM_ENABLED=true` after this review.
+3. To record Spotify listening through Last.fm, use [Last.fm Applications settings](https://www.last.fm/settings/applications) to connect Spotify there.
+4. In Resonance, choose **Connect Last.fm**. The signed `auth.getSession` exchange establishes the account identity. Credentials are encrypted on the server.
+5. Run **Sync next page** or deploy the scheduled relay. The first pass reads existing history in pages of 200, with a fixed upper timestamp. Charts explicitly show that backfill is incomplete.
+
+After backfill, sync checks a two-day overlap from the newest recorded timestamp, deduplicates exact records and advances its durable cursor. Old scrobbles added or edited outside that window are not automatically reconciled. To rebuild a corrected archive, export first, delete the Last.fm archive, reconnect and backfill. Deletion stops that connection and invalidates pending authorization so it cannot silently restore the data.
+
+The scheduled relay processes one due page every five minutes. Large initial archives take time; the website can request extra pages subject to the shared provider cooldown. Hosting/database failure does not advance the cursor. Rate limits delay retries. The UI shows the last successful page and the latest scheduler heartbeat; it never calls an unconfigured scheduler “live.”
+
+We cannot recover listening that Last.fm never recorded. Last.fm’s current-playing marker is transient and excluded from historical counts. Actual listening minutes are unknown for these API scrobbles.
+
+References: [web authentication](https://www.last.fm/api/webauth), [recent tracks and pagination](https://www.last.fm/api/show/user.getRecentTracks). Provider artwork is not used.
+
+## 4. Runtime settings
+
+Manage production settings in Sites; local `.env`/`.dev.vars` files do not configure production. Republish a saved version to apply changes.
+
+| Setting | Value |
+| --- | --- |
+| `RESONANCE_ORIGIN` | Exact website origin, without a trailing path. |
+| `KARINA_TOKEN_KEY` | Independent random 32-byte key encoded as 64 hex characters. Secret. |
+| `KARINA_JOB_SECRET` | Another independent random secret of at least 32 characters. Secret; same value in the relay. |
+| `LASTFM_API_KEY` | Last.fm API key. Secret. |
+| `LASTFM_SHARED_SECRET` | Last.fm shared secret. Secret. |
+| `LASTFM_ENABLED` | `true` only after reviewing the intended API use. Default disabled. |
+| `DISCORD_CLIENT_ID` | Discord Application ID. |
+| `DISCORD_CLIENT_SECRET` | Discord OAuth2 client secret. Secret. |
+| `DISCORD_PUBLIC_KEY` | Discord Application Public Key. |
+| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Optional Spotify app credentials; secret stays server-side. |
+| `SPOTIFY_DISPLAY_ENABLED` | Default `false`. Enable only after access and combined-use review. |
+
+Generate keys with a password manager or `crypto.randomBytes(32).toString('hex')` in a private local console. Do not print them in shared logs. Losing or rotating `KARINA_TOKEN_KEY` makes existing encrypted connections unreadable; disconnect and reauthorize or implement a deliberate key migration. Never silently generate a new key at runtime.
+
+## 5. Public relay and background job
+
+Discord cannot reach an owner-private Sites page anonymously. The separate, small Cloudflare Worker in `karina-worker/` is the public receiver. It validates Ed25519 over the exact request timestamp and raw body before forwarding to the fixed private interaction path. Resonance verifies the signature again, resolves the actual invoking Discord user and deduplicates interaction IDs.
+
+Use your own Cloudflare account and review its current quotas. The Worker has no signup or billing dependency embedded in Resonance. Store secrets in Wrangler/Cloudflare secret settings:
+
+```sh
+npx wrangler secret put DISCORD_PUBLIC_KEY --config karina-worker/wrangler.jsonc
+npx wrangler secret put SITES_BYPASS_TOKEN --config karina-worker/wrangler.jsonc
+npx wrangler secret put KARINA_JOB_SECRET --config karina-worker/wrangler.jsonc
+npx wrangler deploy --config karina-worker/wrangler.jsonc
+```
+
+`SITES_BYPASS_TOKEN` is the Site’s machine-access bearer token provided by the hosting integration, sent only in `OAI-Sites-Authorization: Bearer …`. It is a server credential with access to the private Site. Transfer it directly between trusted secret stores, never into the browser, repository, public URL or chat message. `KARINA_JOB_SECRET` separately authorizes only the scheduled job route. Do not expose other relay routes or allow arbitrary forwarding destinations.
+
+The relay’s five-minute cron calls `/api/karina/jobs`. The private backend uses D1 job leases and a shared rate-limit timestamp. Normal Discord commands acknowledge with a defer and finish by editing the original interaction response within Discord’s token window. Errors after a public defer remain generic because Discord cannot change that response into an ephemeral one. No unsolicited messages or proactive DM notifications are sent.
+
+Use a valid signed Discord test to verify public receiver → private Site → response. With no Discord application or credentials yet, that live delivery remains unverified; mock protocol tests are not a substitute.
+
+## 6. Optional Spotify display and archive limits
+
+Spotify OAuth asks only for `user-read-currently-playing` and uses S256 PKCE. Access tokens are refreshed server-side and replacement refresh tokens are retained. The current documentation describes a six-month refresh lifetime for new Dashboard applications; the implementation preserves the original authorization deadline and requires reauthorization when it expires. Disconnecting deletes the encrypted tokens; users can also revoke access in Spotify’s account settings.
+
+New development apps currently require a Premium app owner and support at most five allowlisted users. Extended quota is a separate approval route. OAuth success does not guarantee API access for a user not on the allowlist. These are provider access conditions, not a Resonance subscription.
+
+Spotify’s recently-played API is not a lifetime export. Spotify’s account data export can include Extended Streaming History, but the developer policy’s analytics restriction and broad definition of Spotify Content make unrestricted archive analytics in this combined developer application unresolved. Therefore the tested parser is not exposed as an enabled import or analytics source. There is no switch that silently bypasses this boundary. Do not rename Spotify API data as Last.fm or ListenBrainz data.
+
+References: [authorization](https://developer.spotify.com/documentation/web-api/tutorials/code-flow), [refresh tokens](https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens), [current playing](https://developer.spotify.com/documentation/web-api/reference/get-the-users-currently-playing-track), [quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes), [data exports](https://support.spotify.com/uk/article/understanding-your-data/), [policy](https://developer.spotify.com/policy), [terms](https://developer.spotify.com/terms).
+
+## Design and validation
+
+The interface applies readable hierarchy, restrained surfaces and purposeful motion informed by [OpenAI’s frontend guidance](https://developers.openai.com/api/docs/guides/frontend-prompt). It uses original mathematical graphics rather than pretending to analyze audio. The 3D chart is driven only by explicitly sourced timestamp counts, is manipulable by pointer and keyboard, and has a table equivalent. No OpenAI API or paid AI call is required.
+
+Run `npm run check`, `npm run build`, and the browser suites described in `docs/QA.md`. Test provider authentication with real credentials in a development application before inviting users. Do not describe the private pilot as a production-tested public service.
+
+
+Large archive exports fetch 1,000 records per request to avoid per-invocation database query limits. Browsers supporting the File System Access API write directly to the selected file; others create a download in browser memory and are subject to device memory limits. Export from a desktop browser for very large archives. Original history formats are identified explicitly on import; exporting does not grant permission to reclassify restricted provider data.

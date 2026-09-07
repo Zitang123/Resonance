@@ -12,7 +12,7 @@ root = Path(__file__).resolve().parents[1]
 os.chdir(root)
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--cli', help='Optional path to a playwright-cli wrapper')
-parser.add_argument('suites', nargs='*', choices=['journey', 'resilience', 'motion', 'mobile', 'integrity'])
+parser.add_argument('suites', nargs='*', choices=['journey', 'resilience', 'motion', 'mobile', 'integrity', 'karina'])
 args = parser.parse_args()
 command = [args.cli] if args.cli else ['npx', '--yes', '--package', '@playwright/cli', 'playwright-cli']
 session = f'-s=resonance-qa-{os.getpid()}'
@@ -27,7 +27,7 @@ def run(*arguments):
 
 try:
     run('open', 'http://localhost:4173/')
-    for suite in args.suites or ['journey', 'resilience', 'motion', 'mobile', 'integrity']:
+    for suite in args.suites or ['journey', 'resilience', 'motion', 'mobile', 'integrity', 'karina']:
         source = (root / f'scripts/browser-{suite}.js').read_text().strip().rstrip(';')
         result = run('run-code', source)
         (output / f'{suite}.log').write_text(result)

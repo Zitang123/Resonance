@@ -1,5 +1,5 @@
 /* Device-local offline shell. Provider data and cross-origin requests are never cached. */
-const CACHE = 'resonance-shell-v2';
+const CACHE = 'resonance-shell-v3';
 const asset = (url) =>
   url.origin === self.location.origin &&
   /\.(?:js|css|woff2?|svg|png)$/.test(url.pathname) &&

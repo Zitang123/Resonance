@@ -8,7 +8,7 @@ Verified against official sources on 7 September 2026. These are release boundar
 | Provider links | Spotify, Apple Music, YouTube and Bandcamp HTTPS links with supported identifier/path validation | Functional | User supplies the exact recording link; availability is not inferred from syntax |
 | MusicBrainz | Outbound search; optional server search for recording/release-group matches requiring user selection | Local saving and outbound search functional; live adapter disabled | Real contactable User-Agent, service-use confirmation, shared limiter before distributed hosting |
 | ListenBrainz | JSON import, validation, deduplication, partial-coverage provenance; optional latest 1,000 public listens | File import functional; live adapter disabled | Real User-Agent and service-use confirmation; shared limiter before distributed hosting |
-| Spotify API | Truthful unconfigured state | Not connected | Developer access, appropriate OAuth/scopes, reviewed policy and actual capability testing |
+| Spotify API | Gated current-playing OAuth display | Implemented; no credentials | Developer access, intended-use review, Premium app owner/development user limits, actual capability testing |
 | Listening/audio | Explicit provider handoff and manual session logging | Functional | No playback or audio analysis claimed |
 
 ## MusicBrainz
@@ -37,3 +37,10 @@ The [JSON schema](https://listenbrainz.readthedocs.io/en/latest/users/json.html)
 The [July 2026 changelog](https://developer.spotify.com/documentation/web-api/references/changes/july-2026) exists and describes development quota changes. Current [quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) impose development owner/Premium/allowlist conditions and a separate extended-access process. Actual developer access for RESONANCE has not been configured or tested.
 
 The [developer policy](https://developer.spotify.com/policy) constrains derived analytics, AI ingestion, playback, monetization, attribution and deletion. The application therefore ships exact saved-link handoffs and explicitly labelled search links only. It never presents a link click as listening, fetches audio, synchronizes a recording to visuals, or assumes audio-analysis access. Future user authorization must use appropriate OAuth, for example the [PKCE flow](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow) where applicable; an API key is not user consent.
+
+
+## Resonance listening archive and Karina update
+
+See [KARINA_SETUP.md](KARINA_SETUP.md) for the current provider research, complete connection instructions and feature matrix. Resonance owns the archive and statistics; Last.fm is a fallback history bridge explicitly accepted by the user, not the product identity. Source boundaries remain enforced.
+
+Implemented: Last.fm verified WebAuth, paginated existing-history backfill and continuing sync; Discord identify-only account linking and user-installed public command replies in DM/group/server contexts; optional Spotify S256 OAuth and encrypted refreshable current-playing display. Live credentials are absent. Spotify-derived analytics and Spotify archive uploads are blocked pending verified permission; original PNG/SVG charts use independently permitted imported/scrobbled records only. No provider artwork is reused.

@@ -1,0 +1,1 @@
+ALTER TABLE `oauth_states` ADD `used` integer DEFAULT 0 NOT NULL;

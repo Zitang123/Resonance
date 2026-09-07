@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788778917638,
+      "tag": "0000_nostalgic_mentallo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788780021555,
+      "tag": "0001_funny_karen_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788780116379,
+      "tag": "0002_motionless_medusa",
+      "breakpoints": true
+    }
+  ]
+}

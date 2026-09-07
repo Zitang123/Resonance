@@ -1,0 +1,15 @@
+# Copy to .dev.vars for LOCAL testing. Never commit the populated file.
+RESONANCE_ORIGIN=http://127.0.0.1:3000
+# Generate two separate 32-byte hex values using a password manager or crypto.randomBytes.
+KARINA_TOKEN_KEY=
+KARINA_JOB_SECRET=
+LASTFM_API_KEY=
+LASTFM_SHARED_SECRET=
+LASTFM_ENABLED=false
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+DISCORD_PUBLIC_KEY=
+# Optional display only. Enable only after verifying access and the combined use.
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+SPOTIFY_DISPLAY_ENABLED=false

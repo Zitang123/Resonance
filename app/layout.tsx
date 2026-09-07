@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './room-motion.css';
+import './karina.css';
 export const metadata: Metadata = {
   title: 'Resonance — Your listening room',
   icons: { icon: '/favicon.svg' },

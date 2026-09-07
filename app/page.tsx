@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
   AudioLines,
+  ChartNoAxesCombined,
+  MessageCircle,
   Layers3,
   Moon,
   Orbit,
@@ -31,6 +33,8 @@ import { useCollection } from '@/lib/resonance/use-collection';
 import { id, findDuplicates } from '@/lib/resonance/domain';
 import type { MusicItem } from '@/lib/resonance/domain';
 import { Artwork } from '@/components/resonance/art';
+import { Listening } from '@/components/karina/listening';
+import { Karina } from '@/components/karina/karina';
 import { Crate } from '@/components/resonance/crate';
 import { Tonight } from '@/components/resonance/tonight';
 import { Capsules } from '@/components/resonance/capsules';
@@ -38,11 +42,22 @@ import { Atlas, MemoryEditor } from '@/components/resonance/atlas';
 import { ItemEditor } from '@/components/resonance/item-editor';
 import { Settings } from '@/components/resonance/settings';
 import { ProviderAction, dateLabel } from '@/components/resonance/shared';
-type Space = 'Crate' | 'Tonight' | 'Atlas' | 'Capsules';
+type Space =
+  | 'Crate'
+  | 'Tonight'
+  | 'Atlas'
+  | 'Capsules'
+  | 'Listening'
+  | 'Karina';
 export default function Home() {
   const store = useCollection();
   const { state, ready, mode, error, notice, commit } = store;
   const [space, setSpace] = useState<Space>('Crate');
+  useEffect(() => {
+    const requested = new URLSearchParams(location.search).get('space');
+    if (requested === 'Karina' || requested === 'Listening')
+      queueMicrotask(() => setSpace(requested));
+  }, []);
   const [editor, setEditor] = useState<MusicItem | 'new'>();
   const [detailId, setDetailId] = useState<string>();
   const [memory, setMemory] = useState<MusicItem | 'new'>();
@@ -308,6 +323,8 @@ export default function Home() {
     { name: 'Tonight' as Space, icon: Moon },
     { name: 'Atlas' as Space, icon: Orbit },
     { name: 'Capsules' as Space, icon: Disc3 },
+    { name: 'Listening' as Space, icon: ChartNoAxesCombined },
+    { name: 'Karina' as Space, icon: MessageCircle },
   ];
   return (
     <SidebarProvider className="room">
@@ -348,7 +365,9 @@ export default function Home() {
           </button>
           <div className="rail-foot">
             <span className="status-dot" />
-            On this device
+            {space === 'Listening' || space === 'Karina'
+              ? 'Account archive'
+              : 'On this device'}
           </div>
         </div>
       </Sidebar>
@@ -420,25 +439,37 @@ export default function Home() {
                   ? 'Tonight'
                   : space === 'Atlas'
                     ? 'Your Atlas'
-                    : 'Capsules'}
+                    : space === 'Listening'
+                      ? 'Listening'
+                      : space === 'Karina'
+                        ? 'Karina'
+                        : 'Capsules'}
               <span className="copper">.</span>
             </h1>
           </div>
-          <button
-            className="button primary"
-            disabled={!ready}
-            onClick={() =>
-              space === 'Atlas' ? setMemory('new') : setEditor('new')
-            }
-          >
-            <Plus size={18} />
-            {space === 'Atlas' ? 'Add a moment' : 'Save music'}
-          </button>
+          {space !== 'Listening' && space !== 'Karina' && (
+            <button
+              className="button primary"
+              disabled={!ready}
+              onClick={() =>
+                space === 'Atlas' ? setMemory('new') : setEditor('new')
+              }
+            >
+              <Plus size={18} />
+              {space === 'Atlas' ? 'Add a moment' : 'Save music'}
+            </button>
+          )}
         </section>
         {!ready ? (
           <output className="loading-state">Opening your collection…</output>
         ) : (
           <div className="space-content" key={`${mode}-${space}`}>
+            {space === 'Listening' && (
+              <Listening onKarina={() => navigate('Karina')} />
+            )}
+            {space === 'Karina' && (
+              <Karina onListening={() => navigate('Listening')} />
+            )}
             {space === 'Crate' && (
               <Crate
                 state={state}
@@ -480,7 +511,11 @@ export default function Home() {
         <footer className="page-footer">
           <AudioLines size={17} />
           <span className="footer-brand">A place for your music.</span>
-          <span>Saved here. Backed up by you.</span>
+          <span>
+            {space === 'Listening' || space === 'Karina'
+              ? 'Your private listening archive.'
+              : 'Saved here. Backed up by you.'}
+          </span>
         </footer>
         {notice && (
           <output className="save-status" aria-live="polite">

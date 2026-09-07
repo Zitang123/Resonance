@@ -42,3 +42,7 @@ next-env.d.ts
 /output/playwright/
 *.tsbuildinfo
 !.env.example
+
+# Provider credentials
+.dev.vars*
+!.dev.vars.example
