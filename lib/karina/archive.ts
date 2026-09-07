@@ -1,5 +1,6 @@
 import { ApiError, database } from './server';
 import { validateRecords, calculateSignals } from './history';
+import { LASTFM_BUDGET_CHECK } from './storage-budget';
 import type {
   HistorySource,
   ListenRecord,
@@ -87,9 +88,11 @@ export async function saveRecords(
     );
   }
   if (!queries.length) return 0;
+  if (records.some((r) => r.source === 'lastfm'))
+    queries.push(db.prepare(LASTFM_BUDGET_CHECK));
   try {
     const result = await db.batch(queries);
-    // RETURNING excludes bookkeeping rows changed by storage-budget triggers.
+    // RETURNING counts only inserted listens, excluding budget bookkeeping.
     return result.reduce((sum, r) => sum + r.results.length, 0);
   } catch (error) {
     if (

@@ -1,8 +1,8 @@
 {
-  "id": "0d61babb-37d3-4930-add7-d20e3e5681bc",
-  "prevId": "cdb12b46-47d9-4e30-a8b8-b5f9c84a0d99",
   "version": "6",
   "dialect": "sqlite",
+  "id": "c9631058-e8af-4dbd-b3a3-11bcbb28bb7d",
+  "prevId": "cdb12b46-47d9-4e30-a8b8-b5f9c84a0d99",
   "tables": {
     "archive_owners": {
       "name": "archive_owners",
@@ -135,6 +135,39 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
+    },
+    "lastfm_archive_budget": {
+      "name": "lastfm_archive_budget",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bytes": {
+          "name": "bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "lastfm_archive_singleton": {
+          "name": "lastfm_archive_singleton",
+          "value": "\"lastfm_archive_budget\".\"id\" = 1"
+        },
+        "lastfm_archive_limit": {
+          "name": "lastfm_archive_limit",
+          "value": "\"lastfm_archive_budget\".\"bytes\" >= 0 AND \"lastfm_archive_budget\".\"bytes\" <= 80000000"
+        }
+      }
     },
     "listens": {
       "name": "listens",
@@ -387,9 +420,9 @@
   "views": {},
   "enums": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
   },
   "internal": {
     "indexes": {}

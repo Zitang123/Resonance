@@ -118,9 +118,7 @@ try {
   assert.ok(
     (
       await db
-        .prepare(
-          "SELECT value FROM system_state WHERE key='lastfm:archive_bytes'",
-        )
+        .prepare('SELECT bytes AS value FROM lastfm_archive_budget WHERE id=1')
         .first()
     ).value > 0,
   );

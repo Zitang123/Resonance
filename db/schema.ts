@@ -5,7 +5,9 @@ import {
   primaryKey,
   index,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 
 export const connections = sqliteTable(
   'connections',
@@ -63,6 +65,20 @@ export const systemState = sqliteTable('system_state', {
   key: text('key').primaryKey(),
   value: integer('value').notNull(),
 });
+export const lastfmArchiveBudget = sqliteTable(
+  'lastfm_archive_budget',
+  {
+    id: integer('id').primaryKey(),
+    bytes: integer('bytes').notNull(),
+  },
+  (t) => [
+    check('lastfm_archive_singleton', sql`${t.id} = 1`),
+    check(
+      'lastfm_archive_limit',
+      sql`${t.bytes} >= 0 AND ${t.bytes} <= 80000000`,
+    ),
+  ],
+);
 export const interactions = sqliteTable('interactions', {
   id: text('id').primaryKey(),
   createdAt: integer('created_at').notNull(),
