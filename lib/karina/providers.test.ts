@@ -63,7 +63,7 @@ function queue(...responses: Response[]): {
     calls,
     fetch: async (input, init = {}) => {
       calls.push({ url: new URL(input), init });
-      assert.equal(init.redirect, 'error');
+      assert.equal(init.redirect, 'manual');
       assert.equal(init.cache, 'no-store');
       assert.ok(init.signal instanceof AbortSignal);
       const next = responses.shift();
@@ -527,6 +527,25 @@ void test('network errors and non-JSON replies cannot echo provider secrets', as
       (error: unknown) =>
         error instanceof ProviderError && !String(error).includes('LEAK'),
     );
+  }
+});
+
+void test('OAuth redirects are rejected without forwarding credentials or reading their body', async () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    const request = queue(
+      new Response('LEAK_redirect_body', {
+        status,
+        headers: { location: 'https://untrusted.example/LEAK_destination' },
+      }),
+    );
+    await assert.rejects(
+      exchangeDiscord('test-code', config, request),
+      (error: unknown) =>
+        error instanceof ProviderError &&
+        error.code === 'unavailable' &&
+        !String(error).includes('LEAK'),
+    );
+    assert.equal(request.calls.length, 1);
   }
 });
 

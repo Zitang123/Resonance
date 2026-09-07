@@ -73,7 +73,7 @@ export async function GET(request: Request) {
         'User-Agent': `Resonance/0.1.0 (${contact})`,
         Accept: 'application/json',
       },
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(9000),
     });
     if (!upstream.ok) {

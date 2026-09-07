@@ -23,7 +23,7 @@ if (!process.argv.includes('--publish')) {
         grant_type: 'client_credentials',
         scope: 'applications.commands.update',
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(15000),
     },
   );
@@ -44,7 +44,7 @@ if (!process.argv.includes('--publish')) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(command),
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(15000),
       },
     );

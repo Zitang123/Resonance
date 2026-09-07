@@ -299,7 +299,8 @@ async function requestJson(
         if (!h.has('Accept')) h.set('Accept', 'application/json');
         return h;
       })(),
-      redirect: 'error',
+      // Workers supports manual redirects; never forward provider credentials.
+      redirect: 'manual',
       cache: 'no-store',
       signal,
     });

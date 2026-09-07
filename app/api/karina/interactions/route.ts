@@ -241,7 +241,7 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
 async function send(url: string, init: RequestInit) {
   const result = await fetch(url, {
     ...init,
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(12000),
   });
   if (!result.ok) throw Error('Discord delivery failed');

@@ -71,9 +71,13 @@ const relay = {
           'x-signature-timestamp': timestamp,
         },
         body: raw,
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(2500),
       });
+      if (result.status >= 300 && result.status < 400) {
+        await result.body?.cancel();
+        throw Error('Resonance returned an unexpected redirect');
+      }
       return new Response(result.body, {
         status: result.status,
         headers: {
@@ -102,7 +106,7 @@ const relay = {
       fetch(target(env, '/api/karina/jobs'), {
         method: 'POST',
         headers: headers(env),
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(25000),
       })
         .then(async (response) => {

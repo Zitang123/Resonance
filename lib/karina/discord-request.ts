@@ -28,7 +28,7 @@ export function createDiscordRequest(
       }
       const response = await send(url, {
         ...init,
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(15000),
       });
       if (response.status !== 429) {
