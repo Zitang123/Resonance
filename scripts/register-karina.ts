@@ -1,4 +1,5 @@
 import { KARINA_COMMANDS } from '../lib/karina/protocol.ts';
+import { createDiscordRequest } from '../lib/karina/discord-request.ts';
 // Dry-run is the default. Publishing explicitly adds/updates only Karina's named commands.
 if (!process.argv.includes('--publish')) {
   process.stdout.write(JSON.stringify(KARINA_COMMANDS, null, 2) + '\n');
@@ -9,7 +10,8 @@ if (!process.argv.includes('--publish')) {
     throw Error(
       'Set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in the shell environment.',
     );
-  const tokenResponse = await fetch(
+  const request = createDiscordRequest();
+  const tokenResponse = await request(
     'https://discord.com/api/v10/oauth2/token',
     {
       method: 'POST',
@@ -33,7 +35,7 @@ if (!process.argv.includes('--publish')) {
   if (!token.access_token)
     throw Error('Discord did not return a command token.');
   for (const command of KARINA_COMMANDS) {
-    const response = await fetch(
+    const response = await request(
       `https://discord.com/api/v10/applications/${clientId}/commands`,
       {
         method: 'POST',

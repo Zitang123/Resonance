@@ -13,6 +13,7 @@ import {
   exchangeDiscord,
   exchangeLastfm,
   exchangeSpotify,
+  ProviderError,
 } from '@/lib/karina/providers';
 import { providerConfig, seal, unseal } from '@/lib/karina/accounts';
 export async function GET(
@@ -20,17 +21,22 @@ export async function GET(
   { params }: { params: Promise<{ provider: string }> },
 ) {
   let result = 'error';
+  let stage = 'identity',
+    providerName = 'unknown';
   try {
+    const p = provider((await params).provider);
+    providerName = p;
     const owner = user(request),
-      p = provider((await params).provider),
       url = new URL(request.url),
       state = url.searchParams.get('state') || '';
+    stage = 'validation';
     if (
       !configured(p) ||
       url.origin !== setting('RESONANCE_ORIGIN') ||
       !/^[\w-]{32,256}$/.test(state)
     )
       throw new ApiError('Invalid connection.');
+    stage = 'state-claim';
     const stored = await database()
       .prepare(
         'UPDATE oauth_states SET used=1 WHERE hash=? AND user_id=? AND provider=? AND expires>? AND used=0 RETURNING verifier',
@@ -40,6 +46,7 @@ export async function GET(
     if (!stored) throw new ApiError('Connection expired.');
     if (url.searchParams.has('error')) result = 'cancelled';
     else {
+      stage = 'provider-exchange';
       const config = providerConfig();
       let externalId = '',
         name = '',
@@ -69,6 +76,7 @@ export async function GET(
         name = 'Spotify account';
         credentials = seal(owner, p, tokens);
       }
+      stage = 'archive-ownership';
       const previous = await connection(owner, p);
       const archiveOwner =
         p === 'lastfm'
@@ -102,6 +110,7 @@ export async function GET(
         throw new ApiError(
           'Delete the previous Last.fm archive before switching accounts.',
         );
+      stage = 'connection-save';
       const db = database();
       const committed = await db.batch(
         linkStatements({
@@ -116,8 +125,22 @@ export async function GET(
       );
       result = committed[0].meta.changes ? 'success' : 'cancelled';
     }
-  } catch {
-    /* No provider tokens, response bodies or account identifiers in logs/redirects. */
+  } catch (error) {
+    // Only fixed classifications; never log exceptions, URLs, tokens or identities.
+    console.error('Karina account connection failed', {
+      provider: providerName,
+      stage,
+      code:
+        error instanceof ProviderError
+          ? error.code
+          : error instanceof ApiError
+            ? 'request_rejected'
+            : 'internal',
+      status:
+        error instanceof ProviderError || error instanceof ApiError
+          ? error.status
+          : 500,
+    });
   }
   return new Response(null, {
     status: 303,
