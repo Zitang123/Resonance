@@ -25,6 +25,7 @@ export function Artwork({
   return (
     <svg
       viewBox="0 0 300 300"
+      preserveAspectRatio="xMidYMid slice"
       className={`artwork ${large ? 'large' : ''}`}
       aria-label="Original abstract cover"
       role="img"

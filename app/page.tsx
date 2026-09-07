@@ -17,6 +17,7 @@ import {
   Check,
   WifiOff,
   Trash2,
+  X,
 } from 'lucide-react';
 import { SidebarProvider, Sidebar } from '@/components/ui/sidebar';
 import {
@@ -351,7 +352,13 @@ export default function Home() {
           </div>
         </div>
       </Sidebar>
-      <main ref={roomMotion} className="workspace" id="main">
+      <main
+        ref={roomMotion}
+        className="workspace"
+        id="main"
+        data-space={space}
+        data-populated={state.items.length > 0}
+      >
         <header className={`topbar ${scrolled ? 'scrolled' : ''}`}>
           <button className="mobile-wordmark" onClick={() => navigate('Crate')}>
             resonance
@@ -452,11 +459,17 @@ export default function Home() {
               />
             )}{' '}
             {space === 'Capsules' && (
-              <Capsules state={state} onChange={commit} onOpen={openItem} />
+              <Capsules
+                state={state}
+                storageError={error}
+                onChange={commit}
+                onOpen={openItem}
+              />
             )}{' '}
             {space === 'Atlas' && (
               <Atlas
                 state={state}
+                storageError={error}
                 onChange={commit}
                 onOpen={openItem}
                 onAdd={() => setMemory('new')}
@@ -469,14 +482,22 @@ export default function Home() {
           <span className="footer-brand">A place for your music.</span>
           <span>Saved here. Backed up by you.</span>
         </footer>
-        <output className="save-status" aria-live="polite">
-          <span>{notice || 'Your collection stays on this device.'}</span>
-          {store.undoCount > 0 && (
-            <button onClick={store.undo}>
-              <Undo2 size={15} /> Undo
+        {notice && (
+          <output className="save-status" aria-live="polite">
+            <span>{notice}</span>
+            {store.undoCount > 0 && (
+              <button onClick={store.undo}>
+                <Undo2 size={15} /> Undo
+              </button>
+            )}
+            <button
+              onClick={() => store.setNotice('')}
+              aria-label="Dismiss notification"
+            >
+              <X size={15} />
             </button>
-          )}
-        </output>
+          </output>
+        )}
       </main>
       <Sheet open={!!item} onOpenChange={(v) => !v && closeItem()}>
         <SheetContent className="detail-sheet" finalFocus={opener}>
@@ -499,6 +520,11 @@ export default function Home() {
                 <SheetDescription className="detail-artist">
                   {item.artist}
                 </SheetDescription>
+                {error && (
+                  <p role="alert" className="error-message">
+                    {error}
+                  </p>
+                )}
                 <div className="button-row">
                   <ProviderAction item={item} />
                   <button

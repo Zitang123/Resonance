@@ -1670,13 +1670,6 @@ textarea {
   height: 100%;
   object-fit: cover;
 }
-.capsule-card:hover .capsule-art {
-  transform: translateY(-4px) rotateX(2deg);
-  box-shadow: 0 16px 30px #0003;
-}
-.capsule-card:active .capsule-art {
-  transform: translateY(-1px);
-}
 .capsule-index {
   position: absolute;
   top: 20px;
@@ -2967,7 +2960,7 @@ textarea {
 }
 /* The populated crate brings actual records into the first viewport. */
 .collection-banner {
-  min-height: 145px;
+  min-height: 112px;
   padding: 4px 0 23px;
   display: flex;
   align-items: center;
@@ -2988,7 +2981,13 @@ textarea {
   opacity: 0.95;
 }
 .crate-tools {
-  margin-top: 22px;
+  margin-top: 14px;
+}
+.workspace[data-space='Crate'][data-populated='true'] .page-head {
+  padding: 26px 0 18px;
+}
+.workspace[data-space='Crate'][data-populated='true'] .page-head h1 {
+  font-size: clamp(38px, 4.2vw, 56px);
 }
 .collection-banner > .ribbon {
   filter: none;

@@ -125,6 +125,10 @@ export function ItemEditor({
       )
     )
       onClose();
+    else
+      setError(
+        'Could not save. Your draft is still here. Check storage and recovery in Settings, then try again.',
+      );
   }
   function submit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();

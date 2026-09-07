@@ -126,6 +126,11 @@ export function Settings({
             restore the file on another device.
           </p>
           <div className="button-row">
+            {store.undoCount > 0 && (
+              <button className="button quiet" onClick={store.undo}>
+                <RotateCcw size={16} /> Undo last change
+              </button>
+            )}
             <button
               className="button"
               onClick={() =>
@@ -405,10 +410,10 @@ export function Settings({
             </div>
           )}
         </section>
-        {error && (
+        {(error || store.error) && (
           <p className="error-message" role="alert">
             <AlertCircle size={16} />
-            {error}
+            {error || store.error}
           </p>
         )}
         {message && (

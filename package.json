@@ -12,7 +12,7 @@
     "lint": "oxlint app components/resonance lib/resonance hooks/use-room-motion.ts",
     "format": "oxfmt",
     "typecheck": "tsc --noEmit",
-    "test": "node --test lib/resonance/domain.test.ts",
+    "test": "node --test lib/resonance/domain.test.ts lib/resonance/service-worker.test.mjs",
     "check": "npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {

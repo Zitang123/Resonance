@@ -1,0 +1,1 @@
+{"payload": {"listens": [{"listened_at": 1788735600, "track_metadata": {"artist_name": "QA artist", "track_name": "A dated listen"}}, {"listened_at": 1788735660, "track_metadata": {"artist_name": "QA artist", "track_name": "Another listen"}}, {"listened_at": "invalid", "track_metadata": {"artist_name": "QA artist", "track_name": "Invalid listen"}}]}}

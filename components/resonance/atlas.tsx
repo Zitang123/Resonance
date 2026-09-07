@@ -29,6 +29,7 @@ export function MemoryEditor({
   const [capsuleId, setCapsuleId] = useState(moment?.capsuleId || '');
   const [note, setNote] = useState(moment?.note || '');
   const [kind, setKind] = useState(moment?.kind || 'memory');
+  const [error, setError] = useState('');
   const [date, setDate] = useState(
     moment ? localDay(moment.date) : localDate(),
   );
@@ -81,8 +82,17 @@ export function MemoryEditor({
             )
           )
             onClose();
+          else
+            setError(
+              'Could not save. Your draft is still here. Check storage and recovery in Settings, then try again.',
+            );
         }}
       >
+        {error && (
+          <p role="alert" className="error-message">
+            {error}
+          </p>
+        )}
         <div className="two-fields">
           <label className="field">
             Music
@@ -163,11 +173,13 @@ export function MemoryEditor({
 }
 export function Atlas({
   state,
+  storageError,
   onChange,
   onOpen,
   onAdd,
 }: {
   state: State;
+  storageError?: string;
   onChange: (s: State, msg: string) => boolean;
   onOpen: (i: MusicItem) => void;
   onAdd: () => void;
@@ -514,6 +526,11 @@ export function Atlas({
           <p className="memory-writing">
             {opened.note || 'Imported listening record.'}
           </p>
+          {storageError && (
+            <p role="alert" className="error-message">
+              {storageError}
+            </p>
+          )}
           {opened.capsuleId && (
             <p>
               In {state.capsules.find((c) => c.id === opened.capsuleId)?.title}

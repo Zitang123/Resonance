@@ -35,6 +35,7 @@ export function useCollection() {
       sync(r.state);
       history.current = [];
       setUndoCount(0);
+      setNotice('');
       try {
         localStorage.setItem('resonance:mode', m);
       } catch {}

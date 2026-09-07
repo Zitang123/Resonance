@@ -45,10 +45,12 @@ export function exportCapsule(c: Capsule, s: State) {
 }
 export function Capsules({
   state,
+  storageError,
   onChange,
   onOpen,
 }: {
   state: State;
+  storageError?: string;
   onChange: (s: State, msg: string) => boolean;
   onOpen: (i: MusicItem) => void;
 }) {
@@ -85,7 +87,13 @@ export function Capsules({
             >
               <div className="capsule-art" data-motion-surface>
                 {c.image ? (
-                  <Image unoptimized width={1200} height={800} src={c.image} alt="Your chosen capsule cover" />
+                  <Image
+                    unoptimized
+                    width={1200}
+                    height={800}
+                    src={c.image}
+                    alt="Your chosen capsule cover"
+                  />
                 ) : (
                   <Artwork seed={c.title} theme={c.theme} />
                 )}
@@ -128,9 +136,20 @@ export function Capsules({
           wide
         >
           <div className={`capsule-detail theme-${c.theme}`}>
+            {storageError && (
+              <p role="alert" className="error-message">
+                {storageError}
+              </p>
+            )}
             <div className="capsule-detail-art">
               {c.image ? (
-                <Image unoptimized width={1200} height={800} src={c.image} alt="Your chosen capsule cover" />
+                <Image
+                  unoptimized
+                  width={1200}
+                  height={800}
+                  src={c.image}
+                  alt="Your chosen capsule cover"
+                />
               ) : (
                 <Ribbon quiet={state.preferences.lowerEffects} />
               )}
@@ -286,6 +305,10 @@ function CapsuleEditor({
             )
           )
             onClose();
+          else
+            setError(
+              'Could not save. Your draft is still here. Check storage and recovery in Settings, then try again.',
+            );
         }}
       >
         <label className="field">
@@ -442,6 +465,10 @@ function CapsuleEditor({
                   )
                 )
                   onClose();
+                else
+                  setError(
+                    'Could not delete this capsule. Your collection is unchanged. Check Settings for storage and recovery.',
+                  );
               }}
             >
               <Trash2 size={14} /> Delete capsule
