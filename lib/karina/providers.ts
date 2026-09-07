@@ -371,8 +371,10 @@ export async function exchangeLastfm(
 ): Promise<LastfmSession> {
   const apiKey = required('lastfm', config.lastfmApiKey, true);
   const secret = required('lastfm', config.lastfmApiSecret, true);
-  if (!/^[a-fA-F0-9]{32}$/.test(token))
-    throw new ProviderError('lastfm', 'invalid_request', 400);
+  // The API key/signature are hexadecimal; Last.fm's authorization token is
+  // opaque. Validate its bounds and control characters, then let Last.fm
+  // verify it in the signed exchange instead of assuming an MD5-shaped token.
+  token = required('lastfm', token);
   // Last.fm specifies MD5 of sorted UTF-8 name/value pairs plus secret; format is excluded.
   const signature = createHash('md5')
     .update(
@@ -397,7 +399,9 @@ export async function exchangeLastfm(
     !data.session.name ||
     data.session.name.length > 256 ||
     typeof data.session.key !== 'string' ||
-    !/^[a-fA-F0-9]{32}$/.test(data.session.key)
+    !data.session.key ||
+    data.session.key.length > 8192 ||
+    /[\u0000-\u001f\u007f]/.test(data.session.key)
   )
     throw new ProviderError('lastfm', 'invalid_response');
   return {

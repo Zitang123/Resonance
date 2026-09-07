@@ -35,3 +35,9 @@ No fake social-login buttons. Reverify provider requirements before setup; disti
 Verify two-user read/write/export/image isolation; forged ownership fields; account switching with requests in flight; stale revisions; replayed migration; deletion versus late OAuth/sync; unlinking the final login method; private image access. Update `public/sw.js` before adding personalized server-rendered pages: it currently caches successful navigation HTML without account separation or checking `no-store`.
 
 Primary surfaces: `app/page.tsx`, `lib/resonance/use-collection.ts`, editors/settings, `components/karina/karina.tsx`, shared server identity, new account/collection/image routes, `db/schema.ts`, append-only migrations, `.openai/hosting.json` for R2, and `public/sw.js`.
+
+## Requested follow-up: guided lifetime-history import
+
+After the current Last.fm/Discord connection work, add a guided Spotify Extended Streaming History upload for the account owner through Resonance, with an intuitive Karina command entry point. The user requested clear category and date-range options and user-defined import choices. Start with archive selection, a private preview showing actual coverage, duplicate/invalid-record counts and explicit confirmation; keep imported records owned by the invoking account and make progress resumable. Public listening replies must never expose the uploaded file or its device/location metadata.
+
+Before enabling Spotify-derived analytics or its upload entry point, resolve the provider permission gate documented in KARINA_SETUP.md; the existing parser is not evidence that this use is permitted. Do not promise recovery of events absent from the supplied export. Choose the minimal Discord flow after checking attachment limits and retention; a private upload link to Resonance may be more suitable than posting sensitive account exports into chat. This request is queued and has not been implemented.

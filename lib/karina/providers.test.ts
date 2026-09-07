@@ -153,15 +153,19 @@ void test('callback validation rejects cross-origin configuration and enforces S
 });
 
 void test('Last.fm identity is verified by signed getSession, excluding format from signature', async () => {
-  const token = 'a'.repeat(32);
+  const token = 'OpaqueLastfmTokenWithLettersBeyondHex123';
   const request = queue(
     json({
-      session: { name: 'listener', key: 'b'.repeat(32), subscriber: '0' },
+      session: {
+        name: 'listener',
+        key: 'OpaqueSessionKey_Z9',
+        subscriber: '0',
+      },
     }),
   );
   assert.deepEqual(await exchangeLastfm(token, config, request), {
     username: 'listener',
-    sessionKey: 'b'.repeat(32),
+    sessionKey: 'OpaqueSessionKey_Z9',
     subscriber: false,
   });
   const url = request.calls[0].url;
