@@ -36,3 +36,9 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# browser QA runtime
+/.playwright-cli/
+/output/playwright/
+*.tsbuildinfo
+!.env.example

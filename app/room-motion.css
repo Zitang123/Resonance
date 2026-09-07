@@ -1,0 +1,114 @@
+/* Put data-motion on the stable card; mark only its artwork surface below.
+   Its label, controls, layout footprint and focus ring retain their geometry. */
+[data-motion='record'],
+[data-motion='capsule'] {
+  perspective: 1100px;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --lift: 0px;
+  --shine-x: 50%;
+  --shine-y: 50%;
+  --shine-opacity: 0;
+}
+
+[data-motion] > [data-motion-surface] {
+  position: relative;
+  isolation: isolate;
+  transform-origin: 50% 60%;
+  transform: translate3d(0, var(--lift), 0) rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y));
+  backface-visibility: hidden;
+  /* The spring owns interpolation. A CSS transform transition adds lag. */
+  transition: box-shadow 180ms ease;
+}
+
+[data-room-motion-active='true'] > [data-motion-surface] {
+  will-change: transform;
+}
+
+/* A quiet reflected patch, fixed when the pointer rests. Not a moving shine. */
+[data-motion] > [data-motion-surface]::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: inherit;
+  opacity: var(--shine-opacity);
+  background: radial-gradient(
+    ellipse at var(--shine-x) var(--shine-y),
+    #fff7e8,
+    transparent 68%
+  );
+}
+
+/* Use this on an INNER ribbon/art layer, never the data-motion-surface itself.
+   Native scrolling remains in charge. Default travel is only +/-18px. */
+[data-parallax] {
+  --scroll-y: 0px;
+  --scroll-progress: 0.5;
+  translate: 0 var(--scroll-y);
+}
+
+/* Keep focus visible through any tilt; inherit your normal focus-ring colour. */
+[data-motion]:focus-visible,
+[data-motion]:has(:focus-visible) > [data-motion-surface] {
+  outline: 2px solid var(--focus-ring, #b1c3cd);
+  outline-offset: 4px;
+}
+
+/* Touch has direct press feedback, with no event cancellation or hover state. */
+@media (hover: none), (pointer: coarse) {
+  [data-motion] > [data-motion-surface] {
+    transition: scale 140ms ease-out;
+  }
+  [data-motion]:active > [data-motion-surface] {
+    scale: 0.992;
+  }
+  [data-motion] > [data-motion-surface]::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion] > [data-motion-surface] {
+    transform: none !important;
+    scale: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+  [data-parallax] {
+    translate: none !important;
+  }
+  [data-motion] > [data-motion-surface]::after {
+    display: none;
+  }
+}
+
+:root[data-effects='low'] [data-motion] > [data-motion-surface] {
+  transform: none !important;
+  scale: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+:root[data-effects='low'] [data-parallax] {
+  translate: none !important;
+}
+:root[data-effects='low'] [data-motion] > [data-motion-surface]::after {
+  display: none;
+}
+/* This layer owns decorative transforms; never combine two interpolation systems. */
+.capsule-art,
+.collection-banner > .ribbon {
+  animation: none;
+}
+.wordmark,
+.mobile-wordmark {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+[data-motion='record']:hover > [data-motion-surface],
+[data-motion='capsule']:hover > [data-motion-surface] {
+  box-shadow: 0 20px 35px -18px #0009;
+}
