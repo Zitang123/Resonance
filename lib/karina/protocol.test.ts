@@ -438,6 +438,36 @@ void test('now-playing never treats a recent completed record as current playbac
   );
 });
 
+void test('Spotify current playback includes its logo and a safe recording link without archive claims', () => {
+  for (const kind of ['track', 'episode']) {
+    const result = commandReply('fm', {
+      ...snapshot,
+      source: 'Spotify',
+      nowPlaying: {
+        title: 'Current recording',
+        artist: 'Creator',
+        playing: true,
+        url: `https://open.spotify.com/${kind}/abc123?si=private-tracking`,
+      },
+    });
+    const embed = result.data.embeds![0];
+    assert.equal(embed.url, `https://open.spotify.com/${kind}/abc123`);
+    assert.equal(
+      embed.thumbnail?.url,
+      'https://resonance.example/brands/spotify-white.png',
+    );
+    assert.equal(
+      embed.footer.text,
+      'Spotify · Current playback · Not a completed listen',
+    );
+    assertEmbedBounds(result);
+  }
+  assert.equal(
+    commandReply('fm', snapshot).data.embeds![0].thumbnail,
+    undefined,
+  );
+});
+
 void test('stats preserve unknown duration and source rather than estimating from counts', () => {
   const content = text(
     commandReply({ command: 'stats', period: '1month' }, snapshot),

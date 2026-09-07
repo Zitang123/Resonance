@@ -2,6 +2,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
 type Playback = {
   title: string;
@@ -78,7 +79,20 @@ export function SpotifyPlaying({
   return (
     <section className="spotify-playing" aria-label="Your Spotify playback">
       <div>
-        <p className="eyebrow">From Spotify</p>
+        <a
+          className="spotify-attribution"
+          href={playing?.url || 'https://open.spotify.com/'}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Image
+            src="/brands/spotify-white.svg"
+            alt="Spotify"
+            width="92"
+            height="25"
+            unoptimized
+          />
+        </a>
         <h3>
           {busy
             ? 'Checking Spotify…'

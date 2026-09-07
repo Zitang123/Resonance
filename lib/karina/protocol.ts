@@ -366,6 +366,7 @@ export type KarinaEmbed = {
   color: number;
   fields?: Array<{ name: string; value: string; inline?: boolean }>;
   footer: { text: string };
+  thumbnail?: { url: string };
 };
 export type KarinaDiscordReply = {
   type: 4;
@@ -465,7 +466,7 @@ function musicLink(input?: string): string | null {
       (['last.fm', 'www.last.fm'].includes(host) &&
         url.pathname.startsWith('/music/')) ||
       (host === 'open.spotify.com' &&
-        /^\/(?:intl-[a-z]{2}\/)?(?:track|album)\/[a-zA-Z0-9]+\/?$/.test(
+        /^\/(?:intl-[a-z]{2}\/)?(?:track|album|episode)\/[a-zA-Z0-9]+\/?$/.test(
           url.pathname,
         )) ||
       (host === 'music.apple.com' &&
@@ -597,6 +598,13 @@ export function commandReply(
       'Current report · Not a completed listen',
     );
     if (musicUrl) result.url = musicUrl;
+    if (snapshot.source === 'Spotify' && url) {
+      result.thumbnail = {
+        url: new URL('/brands/spotify-white.png', url).href,
+      };
+      result.footer.text =
+        'Spotify · Current playback · Not a completed listen';
+    }
     return publicEmbed(result);
   }
   if (name === 'recent') {
