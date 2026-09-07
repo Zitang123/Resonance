@@ -8,8 +8,10 @@ const bundle = await build({
   stdin: {
     contents: `
       import { exchangeDiscord, getSpotifyIdentity } from './lib/karina/providers.ts';
+      import { configured } from './lib/karina/server.ts';
       export default { async fetch(request) {
         try {
+          if (new URL(request.url).pathname === '/configuration') return Response.json({ spotify: configured('spotify'), discord: configured('discord'), lastfm: configured('lastfm') });
           if (new URL(request.url).pathname === '/spotify') return Response.json(await getSpotifyIdentity('synthetic-spotify-token'));
           const identity = await exchangeDiscord(new URL(request.url).pathname.slice(1), {
             origin: 'https://resonance.example', discordClientId: '123456',
@@ -24,7 +26,7 @@ const bundle = await build({
   write: false,
   format: 'esm',
   platform: 'node',
-  external: ['node:*'],
+  external: ['node:*', 'cloudflare:*'],
 });
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -35,6 +37,12 @@ const mf = new Miniflare(
         compatibilityDate: '2026-09-03',
         compatibilityFlags: ['nodejs_compat'],
         script: bundle.outputFiles[0].text,
+        bindings: {
+          RESONANCE_ORIGIN: 'https://resonance.example',
+          KARINA_TOKEN_KEY: '0'.repeat(64),
+          SPOTIFY_CLIENT_ID: 'synthetic-pkce-client',
+          SPOTIFY_DISPLAY_ENABLED: 'true',
+        },
         outboundService: 'synthetic-discord',
       },
       {
@@ -58,6 +66,15 @@ const mf = new Miniflare(
   }),
 );
 try {
+  const configuration = await mf.dispatchFetch(
+    'https://test.example/configuration',
+  );
+  assert.equal(configuration.status, 200);
+  assert.deepEqual(await configuration.json(), {
+    spotify: true,
+    discord: false,
+    lastfm: false,
+  });
   const success = await mf.dispatchFetch('https://test.example/valid');
   assert.equal(success.status, 200);
   assert.equal((await success.json()).username, 'test-listener');

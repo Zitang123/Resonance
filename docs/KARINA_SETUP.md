@@ -109,7 +109,8 @@ Manage production settings in Sites; local `.env`/`.dev.vars` files do not confi
 | `DISCORD_CLIENT_ID` | Discord Application ID. |
 | `DISCORD_CLIENT_SECRET` | Discord OAuth2 client secret. Secret. |
 | `DISCORD_PUBLIC_KEY` | Discord Application Public Key. |
-| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Optional Spotify app credentials; secret stays server-side. |
+| `SPOTIFY_CLIENT_ID` | Shared Spotify application ID. S256 PKCE does not require a client secret. |
+| `SPOTIFY_CLIENT_SECRET` | Optional confidential-client authentication; when supplied it stays server-side. |
 | `SPOTIFY_DISPLAY_ENABLED` | Default `false`. Enable only after access and combined-use review. |
 
 Generate keys with a password manager or `crypto.randomBytes(32).toString('hex')` in a private local console. Do not print them in shared logs. Losing or rotating `KARINA_TOKEN_KEY` makes existing encrypted connections unreadable; disconnect and reauthorize or implement a deliberate key migration. Never silently generate a new key at runtime.
@@ -139,7 +140,7 @@ The deployment owner creates one Spotify developer application for Resonance, us
 
 `https://resonance-listening-room.zitang123.chatgpt.site/api/karina/callback/spotify`
 
-Configure the shared client ID and secret in Sites, then enable `SPOTIFY_DISPLAY_ENABLED` after access/use review. Ordinary visitors sign in to Resonance and choose **Connect Spotify**; Spotify handles their consent and password. The callback verifies Spotify’s immutable `account_id`, stores only the identity/display name and encrypted tokens, and rejects a Spotify identity already linked to another Resonance owner. Developer setup no longer appears in the visitor guide.
+Configure the shared client ID in Sites, then enable `SPOTIFY_DISPLAY_ENABLED` after access/use review. The documented S256 PKCE flow supports both token exchange and refresh without a client secret; the verifier and user tokens still stay encrypted on the server. Ordinary visitors sign in to Resonance and choose **Connect Spotify**; Spotify handles their consent and password. The callback verifies Spotify’s immutable `account_id`, stores only the identity/display name and encrypted tokens, and rejects a Spotify identity already linked to another Resonance owner. Developer setup no longer appears in the visitor guide.
 
 The website playback panel and Karina use the same owner-scoped connection. Playback is checked on demand rather than continuously polled or inserted into the archive. The connection is rechecked around upstream requests so disconnect/relink cancels stale display results. The public data-use page describes sharing, retention and disconnect behavior.
 

@@ -268,6 +268,10 @@ void test('Spotify PKCE exchange calculates access expiry and calendar six-month
   assert.equal(body.get('client_id'), config.spotifyClientId);
   assert.equal(body.get('redirect_uri'), callbackUri('spotify', config));
   assert.equal(
+    new Headers(request.calls[0].init.headers).has('authorization'),
+    false,
+  );
+  assert.equal(
     request.calls[0].url.toString(),
     'https://accounts.spotify.com/api/token',
   );

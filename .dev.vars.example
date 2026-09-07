@@ -11,5 +11,6 @@ DISCORD_CLIENT_SECRET=
 DISCORD_PUBLIC_KEY=
 # Optional display only. Enable only after verifying access and the combined use.
 SPOTIFY_CLIENT_ID=
+# Optional confidential-client authentication; S256 PKCE does not require it.
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_DISPLAY_ENABLED=false

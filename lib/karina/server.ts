@@ -107,7 +107,6 @@ export function configured(provider: Provider) {
     );
   return !!(
     setting('SPOTIFY_CLIENT_ID') &&
-    setting('SPOTIFY_CLIENT_SECRET') &&
     setting('SPOTIFY_DISPLAY_ENABLED') === 'true'
   );
 }
