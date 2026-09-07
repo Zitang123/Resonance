@@ -34,7 +34,7 @@ The user wants a Resonance-owned equivalent to Last.fm/.fmbot including free his
 
 Karina must work in DMs, group DMs and eligible servers using global USER_INSTALL commands (integration_types [1], contexts [0,1,2]). Listening/statistics/chart replies are PUBLIC in the invoking conversation. /connect, /privacy and /sync controls remain private. No arbitrary other-user lookup, unsolicited messages, or message-content intents.
 
-No Discord/Spotify developer apps or Last.fm keys existed when asked. Implemented in-app setup and docs/KARINA_SETUP.md, but real OAuth success, Discord delivery and unattended scheduler remain unverified until credentials/relay are configured. No complete .fmbot premium parity claim. The private Site audience was not expanded.
+Discord application Karina (1546493242865094766) was created with the user’s explicit approval. Its secret is stored in the hosting secret store, 13 commands are registered, Discord validated the public endpoint, and live identity linking, user installation and /stats, /chart and private /privacy replies were verified in Karina’s own DM. Spotify/Last.fm configuration and unattended scheduling remain unfinished; no complete .fmbot premium parity claim. The user explicitly approved keeping the existing public Site audience and publishing. See docs/QA.md for precise tested limits.
 
 New code: lib/karina (history, statistics, providers, AES-GCM, Discord protocol, PNG renderer, SQL guard helpers); app/api/karina; components/karina; db/schema.ts; immutable generated drizzle migrations; karina-worker signature-verifying relay and 5-minute cron; scripts/register-karina.ts dry-run default. No raw original export uploads or journal sync. See docs/QA.md for measured checks.
 

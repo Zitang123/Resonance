@@ -131,7 +131,7 @@ npx wrangler deploy --config karina-worker/wrangler.jsonc
 
 The relay’s five-minute cron calls `/api/karina/jobs`. The authenticated job handler uses D1 job leases and a shared rate-limit timestamp. Normal Discord commands acknowledge with a defer and finish by editing the original interaction response within Discord’s token window. Errors after a public defer remain generic because Discord cannot change that response into an ephemeral one. No unsolicited messages or proactive DM notifications are sent.
 
-Use a valid signed Discord test to verify public receiver → Resonance → response. With no Discord application or credentials yet, that live delivery remains unverified; mock protocol tests are not a substitute.
+The current public installation uses the Site endpoint directly. Discord’s signed endpoint verification, the owner’s identity link and user installation, and live /stats, /chart and private /privacy responses in Karina’s own DM were verified on 7 September 2026. The archive was empty; populated chart uploads, other users, group DMs and server delivery still need live verification. The unattended scheduler remains unconfigured. See QA.md for exact evidence and the Worker fetch regression test.
 
 ## 6. Optional Spotify display and archive limits
 

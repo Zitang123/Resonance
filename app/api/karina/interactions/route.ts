@@ -96,7 +96,7 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
   let stage = 'archive-read';
   try {
     const linked = await connection(owner, 'lastfm');
-    const source = linked
+    const recordedSource = linked
       ? 'lastfm'
       : (
           await database()
@@ -105,11 +105,16 @@ async function finish(command: ParsedCommandInteraction, owner: string) {
             )
             .bind(owner)
             .first<{ source: 'lastfm' | 'listenbrainz' }>()
-        )?.source || 'lastfm';
+        )?.source;
+    const source = recordedSource || 'lastfm';
     const snapshot: ListeningSnapshot = {
       linked: true,
       siteUrl: setting('RESONANCE_ORIGIN'),
-      source: source === 'lastfm' ? 'Last.fm' : 'ListenBrainz',
+      source: recordedSource
+        ? recordedSource === 'lastfm'
+          ? 'Last.fm'
+          : 'ListenBrainz'
+        : 'Resonance archive',
     };
     let png: Uint8Array | undefined;
     if (command.command === 'fm' || command.command === 'nowplaying') {

@@ -692,28 +692,29 @@ export function commandReply(
   }
   if (name === 'stats') {
     const stats = snapshot.stats;
-    const result = embed(
-      'STATISTICS',
-      'Your listening records',
-      stats
-        ? undefined
-        : 'No statistics are available for this period. Listening duration is unknown.',
-    );
-    if (stats)
-      result.fields = [
-        { name: 'Recorded listens', value: count(stats.count), inline: true },
-        { name: 'Artists', value: count(stats.artistCount), inline: true },
-        { name: 'Tracks', value: count(stats.trackCount), inline: true },
-        {
-          name: 'Recorded duration',
-          value: duration(stats.durationMs),
-          inline: true,
-        },
-        {
-          name: 'Available record span',
-          value: `${date(stats.first)}–${date(stats.last)} (UTC)`,
-        },
-      ];
+    if (!stats?.count)
+      return publicEmbed(
+        embed(
+          'STATISTICS',
+          'No listens in this period yet',
+          `Connect a listening source or import your history in Resonance to start your archive.\n\n${openSite}`,
+        ),
+      );
+    const result = embed('STATISTICS', 'Your listening records');
+    result.fields = [
+      { name: 'Recorded listens', value: count(stats.count), inline: true },
+      { name: 'Artists', value: count(stats.artistCount), inline: true },
+      { name: 'Tracks', value: count(stats.trackCount), inline: true },
+      {
+        name: 'Recorded duration',
+        value: duration(stats.durationMs),
+        inline: true,
+      },
+      {
+        name: 'Available record span',
+        value: `${date(stats.first)}–${date(stats.last)} (UTC)`,
+      },
+    ];
     return publicEmbed(result);
   }
   if (name === 'chart') {
@@ -724,7 +725,7 @@ export function commandReply(
     const result = embed(
       'CHARTS',
       'Your listening chart',
-      `Explore chart views on the Resonance website.\n\n${openSite}`,
+      `${snapshot.stats?.count === 0 ? 'Your chart will appear once there are listening records in this period.' : 'Explore chart views on the Resonance website.'}\n\n${openSite}`,
     );
     result.url = url;
     return publicEmbed(result);
