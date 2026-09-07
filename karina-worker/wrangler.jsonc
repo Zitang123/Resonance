@@ -5,7 +5,12 @@
   "workers_dev": false,
   "preview_urls": false,
   "compatibility_flags": ["nodejs_compat"],
-  "triggers": { "crons": ["*/5 * * * *"] },
+  "observability": { "enabled": true },
+  "triggers": { "crons": [] },
+  "durable_objects": {
+    "bindings": [{ "name": "KARINA_CLOCK", "class_name": "KarinaClock" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KarinaClock"] }],
   "vars": {
     "RESONANCE_ORIGIN": "https://resonance-listening-room.zitang123.chatgpt.site",
   },

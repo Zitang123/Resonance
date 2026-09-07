@@ -1,9 +1,11 @@
+import { DurableObject } from 'cloudflare:workers';
 import { verifyDiscord } from '../lib/karina/protocol';
 type RelayEnvironment = {
   RESONANCE_ORIGIN: string;
   DISCORD_PUBLIC_KEY: string;
   SITES_BYPASS_TOKEN?: string;
   KARINA_JOB_SECRET: string;
+  KARINA_CLOCK?: DurableObjectNamespace;
 };
 function headers(env: RelayEnvironment) {
   return {
@@ -26,8 +28,72 @@ function target(env: RelayEnvironment, path: string) {
     throw Error('Invalid origin');
   return new URL(path, url);
 }
+async function runJob(env: RelayEnvironment) {
+  const response = await fetch(target(env, '/api/karina/jobs'), {
+    method: 'POST',
+    headers: headers(env),
+    redirect: 'manual',
+    signal: AbortSignal.timeout(25000),
+  });
+  await response.body?.cancel();
+  return response.status;
+}
+function operator(request: Request, env: RelayEnvironment) {
+  const expected = env.KARINA_JOB_SECRET || '';
+  const supplied =
+    request.headers.get('authorization')?.replace(/^Bearer /, '') || '';
+  if (expected.length < 32 || supplied.length !== expected.length) return false;
+  let difference = 0;
+  for (let index = 0; index < expected.length; index++)
+    difference |= expected.charCodeAt(index) ^ supplied.charCodeAt(index);
+  return difference === 0;
+}
+// One persistent timer for the deployment. Listening records and account jobs
+// remain in Resonance; this object stores only its next wakeup and run status.
+export class KarinaClock extends DurableObject<RelayEnvironment> {
+  async fetch(request: Request) {
+    if (!operator(request, this.env))
+      return new Response('Unauthorized', { status: 401 });
+    if (request.method === 'POST') {
+      // Repeated setup must not postpone an already scheduled run.
+      if ((await this.ctx.storage.getAlarm()) === null)
+        await this.ctx.storage.setAlarm(Date.now() + 1000);
+    } else if (request.method !== 'GET') {
+      return new Response('Method not allowed', { status: 405 });
+    }
+    return Response.json(
+      {
+        nextRun: await this.ctx.storage.getAlarm(),
+        lastAttempt:
+          (await this.ctx.storage.get<number>('lastAttempt')) ?? null,
+        lastStatus: (await this.ctx.storage.get<number>('lastStatus')) ?? null,
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  async alarm() {
+    // Arm the next wakeup before networking, including after downstream outages.
+    await this.ctx.storage.setAlarm(Date.now() + 300000);
+    let status = 0;
+    try {
+      status = await runJob(this.env);
+    } catch {
+      // Fixed status only: never log credentials, responses or listening data.
+    }
+    await this.ctx.storage.put({ lastAttempt: Date.now(), lastStatus: status });
+    if (status < 200 || status >= 300)
+      console.error('Karina scheduled sync failed', status);
+  }
+}
 const relay = {
   async fetch(request: Request, env: RelayEnvironment): Promise<Response> {
+    if (new URL(request.url).pathname === '/scheduler' && env.KARINA_CLOCK) {
+      if (!operator(request, env))
+        return new Response('Unauthorized', { status: 401 });
+      return env.KARINA_CLOCK.get(env.KARINA_CLOCK.idFromName('karina')).fetch(
+        request,
+      );
+    }
     if (
       new URL(request.url).pathname !== '/interactions' ||
       request.method !== 'POST'
@@ -105,16 +171,10 @@ const relay = {
     ctx: ExecutionContext,
   ) {
     ctx.waitUntil(
-      fetch(target(env, '/api/karina/jobs'), {
-        method: 'POST',
-        headers: headers(env),
-        redirect: 'manual',
-        signal: AbortSignal.timeout(25000),
-      })
-        .then(async (response) => {
-          await response.body?.cancel();
-          if (!response.ok)
-            console.error('Karina scheduled sync failed', response.status);
+      runJob(env)
+        .then((status) => {
+          if (status < 200 || status >= 300)
+            console.error('Karina scheduled sync failed', status);
         })
         .catch(() => {
           console.error('Karina scheduled sync could not reach Resonance');
