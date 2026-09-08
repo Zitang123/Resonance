@@ -1,5 +1,6 @@
 'use client';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+export const AccountChecking = createContext(false);
 import { ArrowUpRight, Disc3 } from 'lucide-react';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
@@ -52,8 +53,12 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const checking = useContext(AccountChecking);
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog
+      open={open && !checking}
+      onOpenChange={(v) => !v && !checking && onClose()}
+    >
       <DialogContent className={`res-modal ${wide ? 'wide' : ''}`}>
         <DialogTitle className="modal-title">{title}</DialogTitle>
         {description && <DialogDescription>{description}</DialogDescription>}

@@ -1,43 +1,26 @@
-# Account onboarding — next phase
+# Account onboarding
 
-Requested by the owner after Karina's live Discord connection was complete. Read-only assessment completed on 7 September 2026; this document does not claim the following work is implemented.
+Implemented 8 September 2026. The user explicitly deferred lifetime-history uploads.
 
-## Product outcome
+## Visitor flow
 
-Every visitor sees their own account or a clear sign-in/create-account page. Collections, listening memories, capsules and archives persist separately across devices. Connecting music is a normal consent flow. Only the operator configures developer applications and secrets.
+- Anonymous: Continue with ChatGPT, or explore a clearly labelled sample.
+- First sign-in: create an owner-scoped room, optionally connect Spotify or link Discord, then Enter my room.
+- Returning visitor: restore their saved room. Account & settings centralizes sign-out, optional connections, backups, room clearing and account-data deletion.
+- Older device collection: show record/capsule/moment counts and request explicit ownership confirmation. Save only into an empty account, verify read-back, retain the original for recovery. Replayed saves cannot overwrite an existing account.
 
-## Current boundary
+Ordinary visitors do not configure developer apps or provide keys. Last.fm remains an optional statistics bridge. Lifetime Spotify-history uploads remain unimplemented and deferred.
 
-Listening archives and Discord links already use the authenticated Sites user ID. Crate, Atlas, Capsules and preferences still use an origin-wide device-local `resonance:personal:v1` key in `lib/resonance/use-collection.ts`; changing sign-in does not change that collection. Device-local storage must be migrated explicitly, never silently attributed to the first person signing in.
+## Identity and provider boundary
 
-## Smallest implementation
+The current [official Sites guide](https://learn.chatgpt.com/docs/sites#add-sign-in-with-chatgpt) supports optional ChatGPT sign-in on public Sites. Resonance preserves its existing stable per-Site user IDs, including archives and Discord links. Every protected operation resolves ownership server-side. Browser requests also carry their expected account so stale tabs cannot write to or export a newly signed-in account.
 
-1. Add one account endpoint and identity resolver. Preserve existing owner IDs and Discord/archive ownership. Future login identities need a unique provider/subject mapping; never merge by email.
-2. Store owner-scoped collection records, moments, capsules and revision metadata in D1. Store uploaded capsule images privately in R2. The existing backup may reach 16 MB, so it cannot be placed in one D1 row; the [D1 row/string limit is 2 MB](https://developers.cloudflare.com/d1/platform/limits/).
-3. Replace personal-mode local persistence with authenticated loading and revision-checked writes. Await persistence in editors and WebMCP tools before reporting success. Keep the labelled sample separate.
-4. Offer a counted preview of existing device work, then idempotent migration. Retain the original until server save and read-back succeed. Resolve conflicts explicitly.
-5. Clear rendered data, pending requests and undo state immediately on account change. Add sign-out, full account export/deletion, safe unlinking and recovery.
-6. Move deployment/API-key instructions out of ordinary visitor flows into operator documentation. Show only real, configured connection choices.
+Direct Google, Apple or Spotify login is not configured. Official Sites documentation mentions external identity providers as a supported site shape but does not document a concrete integration mechanism. Confirm that path before implementation. Never merge provider accounts by email. Spotify's existing connection verifies its immutable account ID; it links playback permission to an existing Resonance account. [Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) currently limit development access to approved users.
 
-## Authentication prerequisites
+## Persistence and recovery
 
-The bundled Sites authentication reference documents dispatch-owned ChatGPT sign-in and stable per-Site IDs. It requires confirming the supported platform path before app-owned public/external authentication. Available connector tools do not establish Google/Apple/Spotify support; absence of a tool is not proof of impossibility.
+Personal records, moments, capsule writing and preferences are partitioned in D1, with transactional compare-and-set revisions. Capsule image documents are in private R2 and only returned through authenticated room reads. The sample stays device-local. No navigation HTML, account responses or private images are cached by the service worker.
 
-- **ChatGPT:** existing supported identity can establish separate durable accounts without another developer app.
-- **Google:** operator OAuth client, consent setup and registered redirects; verify OIDC tokens and use `sub`. [Official OIDC guide](https://developers.google.com/identity/openid-connect/openid-connect).
-- **Apple:** primary App ID, Services ID, website/return URLs and signing key; the web usage guidelines also require an App Store app. [Web configuration](https://developer.apple.com/help/account/capabilities/configure-sign-in-with-apple-for-the-web/), [usage requirements](https://developer.apple.com/sign-in-with-apple/usage-guidelines-for-websites-and-other-platforms/).
-- **Spotify:** the operator app and website connection are now configured. The callback verifies Spotify's immutable account ID and keeps that connection attached to the existing Resonance owner; it is not yet an independent Resonance sign-in method. Development-mode access limits prevent promising unrestricted public Spotify onboarding. Reverify provider requirements before extending authentication. [Profile API](https://developer.spotify.com/documentation/web-api/reference/get-current-users-profile), [2026 access changes](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide).
+Account deletion atomically removes room data, archives, connections, pending OAuth claims and sync jobs, while recording image cleanup work. The existing scheduler retries unavailable image storage. Revision guards prevent delayed collection saves, browser history imports and OAuth initiation from restoring deleted data. Recreated rooms receive a new revision. Backups/exported files, retained legacy device copies and already-posted Discord replies are outside server deletion.
 
-No fake social-login buttons. Reverify provider requirements before setup; distinguish authentication from permission to access listening data.
-
-## Acceptance checks
-
-Verify two-user read/write/export/image isolation; forged ownership fields; account switching with requests in flight; stale revisions; replayed migration; deletion versus late OAuth/sync; unlinking the final login method; private image access. Update `public/sw.js` before adding personalized server-rendered pages: it currently caches successful navigation HTML without account separation or checking `no-store`.
-
-Primary surfaces: `app/page.tsx`, `lib/resonance/use-collection.ts`, editors/settings, `components/karina/karina.tsx`, shared server identity, new account/collection/image routes, `db/schema.ts`, append-only migrations, `.openai/hosting.json` for R2, and `public/sw.js`.
-
-## Requested follow-up: guided lifetime-history import
-
-After the current Last.fm/Discord connection work, add a guided Spotify Extended Streaming History upload for the account owner through Resonance, with an intuitive Karina command entry point. The user requested clear category and date-range options and user-defined import choices. Start with archive selection, a private preview showing actual coverage, duplicate/invalid-record counts and explicit confirmation; keep imported records owned by the invoking account and make progress resumable. Public listening replies must never expose the uploaded file or its device/location metadata.
-
-Before enabling Spotify-derived analytics or its upload entry point, resolve the provider permission gate documented in KARINA_SETUP.md; the existing parser is not evidence that this use is permitted. Do not promise recovery of events absent from the supplied export. Choose the minimal Discord flow after checking attachment limits and retention; a private upload link to Resonance may be more suitable than posting sensitive account exports into chat. This request is queued and has not been implemented.
+Tests are recorded in docs/QA.md. No claim of unrestricted Spotify public access or direct social-login availability.

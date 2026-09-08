@@ -22,7 +22,7 @@ export function MemoryEditor({
   state: State;
   item?: MusicItem;
   moment?: Moment;
-  onSave: (s: State, msg: string) => boolean;
+  onSave: (s: State, msg: string) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [itemId, setItemId] = useState(moment?.itemId || item?.id || '');
@@ -43,7 +43,7 @@ export function MemoryEditor({
     >
       <form
         className="entry-form"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (!note.trim()) return;
           const m: Moment = {
@@ -70,7 +70,7 @@ export function MemoryEditor({
               : i,
           );
           if (
-            onSave(
+            await onSave(
               {
                 ...state,
                 items,
@@ -180,7 +180,7 @@ export function Atlas({
 }: {
   state: State;
   storageError?: string;
-  onChange: (s: State, msg: string) => boolean;
+  onChange: (s: State, msg: string) => Promise<boolean>;
   onOpen: (i: MusicItem) => void;
   onAdd: () => void;
 }) {
@@ -351,7 +351,7 @@ export function Atlas({
       <div className="atlas-tools">
         <button
           className="text-link"
-          onClick={() => {
+          onClick={async () => {
             setList(!list);
             setLimit(40);
           }}
@@ -540,7 +540,7 @@ export function Atlas({
             {opened.source === 'manual' && (
               <button
                 className="button"
-                onClick={() => {
+                onClick={async () => {
                   setEditing(opened);
                   setOpened(undefined);
                 }}
@@ -550,9 +550,9 @@ export function Atlas({
             )}
             <button
               className="button quiet danger"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  onChange(
+                  await onChange(
                     {
                       ...state,
                       moments: state.moments.filter((m) => m.id !== opened.id),

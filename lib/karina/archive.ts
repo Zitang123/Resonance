@@ -1,3 +1,4 @@
+import { room } from '../account/collection';
 import { ApiError, database } from './server';
 import { validateRecords, calculateSignals } from './history';
 import { LASTFM_BUDGET_CHECK } from './storage-budget';
@@ -22,6 +23,9 @@ export async function saveRecords(
   input: unknown,
   guard?: { connectionUpdatedAt: number },
 ) {
+  const generation = guard ? null : (await room(userId))?.revision;
+  if (!guard && !generation)
+    throw new ApiError('Open your Resonance account before importing.', 409);
   let records: ListenRecord[];
   try {
     records = validateRecords(input);
@@ -71,10 +75,11 @@ export async function saveRecords(
       r.durationMs,
     ]);
     if (guard) values.push(userId, guard.connectionUpdatedAt);
+    else values.push(userId, generation!);
     const rows = chunk.map(() => '(?,?,?,?,?,?,?,?)').join(',');
     const insertion = guard
       ? `SELECT * FROM (VALUES ${rows}) WHERE EXISTS (SELECT 1 FROM connections WHERE user_id=? AND provider='lastfm' AND updated_at=?)`
-      : `VALUES ${rows}`;
+      : `SELECT * FROM (VALUES ${rows}) WHERE EXISTS (SELECT 1 FROM rooms WHERE user_id=? AND revision=?)`;
     queries.push(
       db
         .prepare(

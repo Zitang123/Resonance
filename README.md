@@ -4,7 +4,7 @@
 
 [Open Resonance](https://resonance-listening-room.zitang123.chatgpt.site)
 
-A private music companion built with TypeScript, React, and Vinext. Capture recommendations, choose a listen, record a memory, and give music a place in a capsule. No streaming account or AI calls are required for the core application.
+An account-based private music companion built with TypeScript, React, and Vinext. Capture recommendations, choose a listen, record a memory, and give music a place in a capsule. No streaming account or AI calls are required for the core application.
 
 ## Run locally
 
@@ -20,6 +20,7 @@ Open the printed local address, normally `http://localhost:3000`. Start with you
 
 ```sh
 npm run check
+npm run test:accounts
 npm run build
 npm run start -- --port 4173
 ```
@@ -36,21 +37,23 @@ npm run start -- --port 4173
 - Motion: procedural standing-wave ribbon, spring-driven artwork tilt and reflection, decorative scroll parallax, native view-transition continuity, short route/control transitions, reduced-motion and lower-effects modes.
 
 - Listening: an account-backed archive, consent-based imports, source-separated statistics, interactive 3D hour/weekday chart, rankings, trends, diversity, repetition, streaks and chart/history exports.
-- Karina: user-installed Discord slash commands for DMs, group chats and eligible servers; public listening embeds and PNG charts, private account controls, website-based provider connections and resumable history sync. Discord identity linking, user installation and empty-archive replies are verified live in Karina’s own DM. Unattended history sync still needs its scheduler.
+- Karina: user-installed Discord slash commands for DMs, group chats and eligible servers; public listening embeds and PNG charts, private account controls, website-based provider connections and resumable history sync. Discord identity linking, user installation and empty-archive replies are verified live in Karina’s own DM. Unattended Last.fm history updates use the verified persistent Cloudflare timer.
 
 ## Karina and the listening archive
 
 Resonance owns the archive, calculations and presentation. Last.fm is the current fallback history bridge for Spotify listening because Spotify's documented API access and developer policy do not support the unrestricted Spotify-only promise. The optional direct Spotify connection is gated display-only. The user explicitly authorized the bridge only where required; keep Resonance as the product identity.
 
-[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Discord and Spotify are configured; the owner’s live Spotify website authorization, empty playback, and matching playing-track display in the website and Karina’s `/fm` are verified. Visitors authorize their own connections through Resonance and never supply developer keys. Spotify development access is limited to approved users. Direct Spotify playback is not archived as listening statistics. Last.fm operator setup and unattended history scheduling remain pending.
+[Exact setup, capability matrix and remaining limits](docs/KARINA_SETUP.md). There is no Resonance subscription or premium gate. This is not full .fmbot parity, and external service/hosting conditions still apply. Discord and Spotify are configured; the owner’s live Spotify website authorization, empty playback, and matching playing-track display in the website and Karina’s `/fm` are verified. Visitors authorize their own connections through Resonance and never supply developer keys. Spotify development access is limited to approved users. Direct Spotify playback is not archived as listening statistics. The Last.fm bridge and background scheduling are configured and verified.
 
-## Local data and privacy
+## Accounts and privacy
 
-Crate, Tonight, Atlas and Capsules data is stored in this browser under `resonance:personal:v1` and `resonance:sample:v1`. It is not synced or uploaded. Clearing browser/site data removes it. **Export a backup in Settings regularly.** Different browsers, devices, ports and deployment domains have separate collections; export/restore moves your collection between them. The website is public; account archives and provider connections require sign-in and are isolated in D1 by the trusted user identity. Local Sites sign-in simulates identity for development. Imported listening history is uploaded only after explicit consent; the crate and private journal remain on the device. See the public [data-use page](https://resonance-listening-room.zitang123.chatgpt.site/privacy).
+Sign in with ChatGPT to create or reopen your private Resonance room. Crate, Atlas, Capsules and preferences persist in owner-scoped D1 documents; uploaded capsule images are private in R2. Spotify and Discord are optional connections inside your account. Direct Google, Apple and Spotify sign-in are not implemented. Spotify currently has limited beta access.
 
-The schema starts at version 1. Backups reject unsupported future versions, invalid nested data, unsafe URLs and broken references before replacing anything. A future schema change must add a deliberate migration rather than weakening validation. Failed writes leave the last saved collection unchanged. Corrupted raw storage can be downloaded from Settings before explicit recovery.
+The sample remains device-local under `resonance:sample:v1`. Older `resonance:personal:v1` collections are offered for an explicit, counted migration into an empty account, with save/read-back verification. The original remains available for recovery. A nonempty account is never silently replaced. Account settings provide room backup/restore, a separate listening-history export, sign-out, connection controls and complete Resonance data deletion.
 
-Image uploads are limited to 1 MB because browser storage is limited. Storage quotas vary. Undo history is in memory and disappears on reload; it is cleared after an update from another tab. The optimistic conflict check reduces stale-tab overwrites but is not a multi-writer database transaction; avoid simultaneous edits in multiple tabs.
+Room saves use atomic revision checks to prevent simultaneous devices overwriting each other. A changed account invalidates pending responses and undo. Revalidation hides private content while preserving same-account drafts. Personal data and HTML are never cached by the service worker. Account deletion cancels pending provider claims; late collection, import and OAuth writes cannot restore deleted state. Image cleanup has a durable retry queue serviced by Karina’s existing timer.
+
+Backups remain version 1 with strict nested validation and a 16 MB limit. Documents are partitioned below D1's 2 MB row limit. Images selected in the editor remain limited to 1 MB each. The room requires an online sign-in to load and save; a successful save is acknowledged before an editor closes. See [data use](https://resonance-listening-room.zitang123.chatgpt.site/privacy).
 
 Opening a provider is never a listening event. Durations and actual playback coverage remain unknown. A memory does not count as a manual listening session. ListenBrainz imports do not silently create saved records or mark recommendations tried.
 
@@ -73,7 +76,7 @@ Replace the example with a real contact URL/email. Commercial usage arrangements
 - `components/resonance`: the four product spaces, editors and shared presentation.
 - `hooks/use-room-motion.ts`: scoped spring/parallax lifecycle, separate from application data.
 - `app/api/providers`: fixed-host read-only MetaBrainz adapter.
-- `public/sw.js`: versioned same-origin offline shell cache; excludes provider APIs.
+- `public/sw.js`: versioned immutable-asset cache; excludes all navigation, APIs and private media.
 - `docs`: product intent, design rationale, integration boundaries and QA evidence.
 
 The original abstract covers and ribbon are editable procedural graphics in `components/resonance/art.tsx`. They are not album artwork or audio visualizations. Capsule exports include user writing and original graphics; imported third-party artwork and uploaded images are omitted.
@@ -90,6 +93,6 @@ The runner uses `npx @playwright/cli`; install the browser support requested by 
 
 ## Current boundaries
 
-No playlist writing, embedded playback, collection/journal sync, telemetry, billing, audio extraction, inferred listening minutes or AI pipeline. Optional Spotify OAuth supports gated current-playing display only; Karina account linking and the separate listening archive are implemented with setup still required. ListenBrainz history is partial and its date span is not a claim of continuous coverage. The sample's notes and activity are fictional, explicitly labelled and independently resettable.
+No playlist writing, embedded playback, telemetry, billing, audio extraction, inferred listening minutes or AI pipeline. Optional Spotify OAuth supports gated current-playing display only; Karina account linking and the separate listening archive are implemented with setup still required. ListenBrainz history is partial and its date span is not a claim of continuous coverage. The sample's notes and activity are fictional, explicitly labelled and independently resettable.
 
 See [project context](PROJECT_CONTEXT.md) before continuing development.

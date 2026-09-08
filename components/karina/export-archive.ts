@@ -1,4 +1,5 @@
 'use client';
+import { getActiveAccount } from '@/lib/account/client';
 import { api } from './use-archive';
 import type { ListenRecord } from '@/lib/karina/types';
 type FileSink = {
@@ -7,6 +8,8 @@ type FileSink = {
   abort(): Promise<void>;
 };
 export async function exportArchive() {
+  const owner = getActiveAccount();
+  if (!owner) throw Error('Sign in before exporting your history.');
   const browser = window as typeof window & {
     showSaveFilePicker?: (
       options: unknown,
@@ -44,7 +47,11 @@ export async function exportArchive() {
       const page = await api<{
         records: ListenRecord[];
         nextCursor: string | null;
-      }>(`/api/karina/export?format=page&cursor=${encodeURIComponent(cursor)}`);
+      }>(
+        `/api/karina/export?format=page&cursor=${encodeURIComponent(cursor)}`,
+        undefined,
+        owner,
+      );
       if (page.records.length) {
         await write(
           (first ? '' : ',') +

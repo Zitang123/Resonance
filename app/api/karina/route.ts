@@ -19,7 +19,9 @@ import {
 } from '@/lib/karina/archive';
 export async function GET(request: Request) {
   try {
-    const id = request.headers.get('oai-authenticated-user-id');
+    const id = request.headers.get('oai-authenticated-user-id')
+      ? user(request)
+      : null;
     const db = runtime().DB;
     const connected =
       id && db

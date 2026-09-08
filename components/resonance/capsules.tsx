@@ -51,7 +51,7 @@ export function Capsules({
 }: {
   state: State;
   storageError?: string;
-  onChange: (s: State, msg: string) => boolean;
+  onChange: (s: State, msg: string) => Promise<boolean>;
   onOpen: (i: MusicItem) => void;
 }) {
   const [editing, setEditing] = useState<Capsule | 'new'>();
@@ -160,7 +160,7 @@ export function Capsules({
             <div className="button-row">
               <button
                 className="button small"
-                onClick={() => {
+                onClick={async () => {
                   setOpened(undefined);
                   setEditing(c);
                 }}
@@ -203,7 +203,7 @@ export function Capsules({
                   <li key={id}>
                     <span>{String(n + 1).padStart(2, '0')}</span>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setOpened(undefined);
                         onOpen(item);
                       }}
@@ -230,7 +230,7 @@ function CapsuleEditor({
 }: {
   capsule?: Capsule;
   state: State;
-  onSave: (s: State, msg: string) => boolean;
+  onSave: (s: State, msg: string) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(capsule?.title || '');
@@ -281,7 +281,7 @@ function CapsuleEditor({
     >
       <form
         className="entry-form"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (!title.trim()) return;
           const c: Capsule = {
@@ -294,7 +294,7 @@ function CapsuleEditor({
             image,
           };
           if (
-            onSave(
+            await onSave(
               {
                 ...state,
                 capsules: capsule
@@ -364,7 +364,7 @@ function CapsuleEditor({
               Remove image
             </button>
           )}
-          <p>Optional · under 1 MB · image stays on this device</p>
+          <p>Optional · under 1 MB · private capsule cover</p>
         </div>
         <div className="form-divider" />
         <h3>Music in this capsule</h3>
@@ -447,9 +447,9 @@ function CapsuleEditor({
             <button
               className="text-link danger"
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  onSave(
+                  await onSave(
                     {
                       ...state,
                       capsules: state.capsules.filter(

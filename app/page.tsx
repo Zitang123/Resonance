@@ -29,7 +29,10 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { useRoomMotion } from '@/hooks/use-room-motion';
-import { useCollection } from '@/lib/resonance/use-collection';
+import {
+  useCollection,
+  type CollectionStore,
+} from '@/lib/resonance/use-collection';
 import { id, findDuplicates } from '@/lib/resonance/domain';
 import type { MusicItem } from '@/lib/resonance/domain';
 import { Artwork } from '@/components/resonance/art';
@@ -41,7 +44,12 @@ import { Capsules } from '@/components/resonance/capsules';
 import { Atlas, MemoryEditor } from '@/components/resonance/atlas';
 import { ItemEditor } from '@/components/resonance/item-editor';
 import { Settings } from '@/components/resonance/settings';
-import { ProviderAction, dateLabel } from '@/components/resonance/shared';
+import { Welcome, LegacyCollection } from '@/components/resonance/account';
+import {
+  ProviderAction,
+  dateLabel,
+  AccountChecking,
+} from '@/components/resonance/shared';
 type Space =
   | 'Crate'
   | 'Tonight'
@@ -51,6 +59,43 @@ type Space =
   | 'Karina';
 export default function Home() {
   const store = useCollection();
+  if (
+    !store.ready ||
+    (store.mode === 'personal' && (!store.account || !store.account.onboarded))
+  )
+    return <Welcome store={store} />;
+  return (
+    <AccountChecking value={store.checking}>
+      <div hidden={store.checking}>
+        <Room
+          key={`${store.mode}:${store.account?.id || 'guest'}`}
+          store={store}
+        />
+      </div>
+      {store.checking && (
+        <style>
+          {
+            '[role=dialog],[role=alertdialog],[data-slot=sheet-overlay],[data-slot=dialog-overlay]{visibility:hidden!important}'
+          }
+        </style>
+      )}
+      {store.checking && (
+        <main className="account-welcome">
+          <p>Checking your account…</p>
+          {store.error && (
+            <>
+              <p className="error-message">{store.error}</p>
+              <button className="button" onClick={store.reload}>
+                Retry
+              </button>
+            </>
+          )}
+        </main>
+      )}
+    </AccountChecking>
+  );
+}
+function Room({ store }: { store: CollectionStore }) {
   const { state, ready, mode, error, notice, commit } = store;
   const [space, setSpace] = useState<Space>('Crate');
   useEffect(() => {
@@ -181,26 +226,36 @@ export default function Home() {
     register({
       name: 'read_resonance_collection',
       description:
-        'Read the currently selected personal or explicitly labelled sample music collection on this device.',
+        'Read the currently selected personal or explicitly labelled sample music collection in this room.',
       inputSchema: {
         type: 'object',
         properties: {},
         additionalProperties: false,
       },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: () => ({
-        mode: latest.current.mode,
-        items: latest.current.state.items.map((i) => ({
-          id: i.id,
-          title: i.title,
-          artist: i.artist,
-          status: i.status,
-        })),
-        capsules: latest.current.state.capsules.map((c) => ({
-          id: c.id,
-          title: c.title,
-        })),
-      }),
+      execute: () => {
+        if (
+          document.visibilityState !== 'visible' ||
+          latest.current.checking ||
+          !latest.current.ready
+        )
+          throw Error(
+            'Wait for your account to be verified before reading your room.',
+          );
+        return {
+          mode: latest.current.mode,
+          items: latest.current.state.items.map((i) => ({
+            id: i.id,
+            title: i.title,
+            artist: i.artist,
+            status: i.status,
+          })),
+          capsules: latest.current.state.capsules.map((c) => ({
+            id: c.id,
+            title: c.title,
+          })),
+        };
+      },
     });
     register({
       name: 'save_manual_music',
@@ -218,7 +273,7 @@ export default function Home() {
         additionalProperties: false,
       },
       annotations: { readOnlyHint: false, untrustedContentHint: true },
-      execute: (input: unknown) => {
+      execute: async (input: unknown) => {
         const d = input as Record<string, unknown>;
         if (
           !d ||
@@ -251,13 +306,10 @@ export default function Home() {
         };
         if (findDuplicates(s.state.items, value).length)
           throw Error('Possible duplicate. Review it using Save music.');
-        let saved = false;
-        flushSync(() => {
-          saved = s.commit(
-            { ...s.state, items: [value, ...s.state.items] },
-            'Music saved to crate.',
-          );
-        });
+        const saved = await s.commit(
+          { ...s.state, items: [value, ...s.state.items] },
+          'Music saved to crate.',
+        );
         if (!saved) throw Error('Storage unavailable; no changes were saved.');
         return { id: value.id, status: 'saved', mode: s.mode };
       },
@@ -298,7 +350,7 @@ export default function Home() {
   }
   function updateItem(status: MusicItem['status']) {
     if (!item) return;
-    commit(
+    void commit(
       {
         ...state,
         items: state.items.map((i) =>
@@ -361,13 +413,15 @@ export default function Home() {
         </nav>
         <div className="rail-bottom">
           <button className="rail-settings" onClick={() => setSettings(true)}>
-            <SettingsIcon size={17} /> Settings & backup
+            <SettingsIcon size={17} /> Account & settings
           </button>
           <div className="rail-foot">
             <span className="status-dot" />
-            {space === 'Listening' || space === 'Karina'
-              ? 'Account archive'
-              : 'On this device'}
+            {mode === 'sample'
+              ? 'Sample · on this device'
+              : store.saving
+                ? 'Saving…'
+                : 'Saved to your account'}
           </div>
         </div>
       </Sidebar>
@@ -403,11 +457,13 @@ export default function Home() {
                 Sample collection <ArrowUpRight size={14} />
               </button>
             ) : (
-              <span className="privacy-label">Private collection</span>
+              <button className="mode-switch" onClick={() => setSettings(true)}>
+                {store.account?.name || 'Your account'}
+              </button>
             )}
             <button
               className="icon-button"
-              aria-label="Settings and backup"
+              aria-label="Account and settings"
               onClick={() => setSettings(true)}
             >
               <SettingsIcon size={17} />
@@ -425,11 +481,12 @@ export default function Home() {
         {error && (
           <div className="storage-error" role="alert">
             <p>{error}</p>
-            <button className="button small" onClick={() => setSettings(true)}>
-              Recovery & backup
+            <button className="button small" onClick={store.reload}>
+              Reload my room
             </button>
           </div>
         )}
+        {mode === 'personal' && <LegacyCollection store={store} />}
         <section className="page-head">
           <div>
             <h1 tabIndex={-1} ref={heading}>
@@ -512,9 +569,9 @@ export default function Home() {
           <AudioLines size={17} />
           <span className="footer-brand">A place for your music.</span>
           <span>
-            {space === 'Listening' || space === 'Karina'
-              ? 'Your private listening archive.'
-              : 'Saved here. Backed up by you.'}
+            {mode === 'sample'
+              ? 'A sample to explore.'
+              : 'Private. Saved across devices.'}
           </span>
         </footer>
         {notice && (
@@ -534,7 +591,10 @@ export default function Home() {
           </output>
         )}
       </main>
-      <Sheet open={!!item} onOpenChange={(v) => !v && closeItem()}>
+      <Sheet
+        open={!!item && !store.checking}
+        onOpenChange={(v) => !v && !store.checking && closeItem()}
+      >
         <SheetContent className="detail-sheet" finalFocus={opener}>
           {item && (
             <>
@@ -685,9 +745,9 @@ export default function Home() {
                 ))}
                 <button
                   className="text-link danger delete-item"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      commit(
+                      await commit(
                         {
                           ...state,
                           items: state.items.filter((i) => i.id !== item.id),

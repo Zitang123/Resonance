@@ -24,7 +24,7 @@ export function ItemEditor({
 }: {
   item?: MusicItem;
   state: State;
-  onSave: (state: State, message: string) => boolean;
+  onSave: (state: State, message: string) => Promise<boolean>;
   onClose: () => void;
   initialLink?: string;
 }) {
@@ -83,7 +83,7 @@ export function ItemEditor({
       metadata: metadata || { source: 'manual' },
     };
   }
-  function persist(value: MusicItem, mergeWith?: MusicItem) {
+  async function persist(value: MusicItem, mergeWith?: MusicItem) {
     let items = state.items;
     let savedId = value.id;
     if (mergeWith) {
@@ -115,7 +115,7 @@ export function ItemEditor({
           : c,
       );
     if (
-      onSave(
+      await onSave(
         { ...state, items, capsules },
         mergeWith
           ? 'Recommendation merged. Your context is preserved.'
@@ -142,7 +142,7 @@ export function ItemEditor({
       if (match && !item) {
         setPending(value);
         setDuplicate(match);
-      } else persist(value);
+      } else void persist(value);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save this entry.');
     }
@@ -261,7 +261,7 @@ export function ItemEditor({
               <button
                 type="button"
                 key={m.id}
-                onClick={() => {
+                onClick={async () => {
                   setTitle(m.title);
                   setArtist(m.artist);
                   setMetadata({ source: 'musicbrainz', id: m.id });
@@ -393,7 +393,7 @@ export function ItemEditor({
           </div>
         ) : (
           <div className="form-actions">
-            <p>Private, saved on this device.</p>
+            <p>Private, in your collection.</p>
             <button className="button primary" type="submit">
               <Check size={17} />
               {item ? 'Save changes' : 'Save to crate'}

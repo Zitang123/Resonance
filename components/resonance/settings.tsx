@@ -1,3 +1,4 @@
+/* oxlint-disable next/no-html-link-for-pages -- Sign-out is a top-level browser navigation. */
 'use client';
 import { useState } from 'react';
 import {
@@ -9,6 +10,8 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
+import { ConnectionOptions } from './account';
+import { exportArchive } from '@/components/karina/export-archive';
 import { Switch } from '@/components/ui/switch';
 import { Modal, download, dateLabel } from './shared';
 import {
@@ -40,6 +43,8 @@ export function Settings({
     skipped: number;
   }>();
   const [busy, setBusy] = useState(false);
+  const [erase, setErase] = useState(false),
+    [confirmation, setConfirmation] = useState('');
   async function backup(file?: File) {
     if (!file) return;
     setError('');
@@ -114,16 +119,44 @@ export function Settings({
       open
       onClose={onClose}
       title="Your room. Your rules."
-      description={`${mode === 'sample' ? 'Sample collection' : 'Personal collection'} · This browser and device`}
+      description={
+        mode === 'sample'
+          ? 'Sample collection · this device'
+          : 'Your private Resonance account'
+      }
       wide
     >
       <div className="settings-content">
+        {mode === 'personal' && (
+          <section className="account-identity">
+            <h3>{store.account?.name}</h3>
+            <p>
+              Your music and memories are saved to this account. Sign in the
+              same way on another device to pick up where you left off.
+            </p>
+            <div className="button-row">
+              <a
+                className="button"
+                href="/signout-with-chatgpt?return_to=%2F"
+                target="_top"
+                onClick={store.signOut}
+              >
+                Sign out
+              </a>
+              <button className="text-button" onClick={store.reload}>
+                Reload my room
+              </button>
+            </div>
+            <ConnectionOptions />
+          </section>
+        )}
+
         <section>
           <h3>Keep a copy</h3>
           <p>
-            Your collection lives in this browser. Clearing site data removes
-            it; browser storage is not a cloud backup. Export regularly, and
-            restore the file on another device.
+            {mode === 'sample'
+              ? 'This sample stays on this device and never mixes with your account.'
+              : 'Your room is saved automatically after each successful change. Export a portable copy of your records, memories, capsules and images whenever you want.'}
           </p>
           <div className="button-row">
             {store.undoCount > 0 && (
@@ -140,7 +173,7 @@ export function Settings({
                 )
               }
             >
-              <Download size={16} /> Export backup
+              <Download size={16} /> Export room backup
             </button>
             <label className="button">
               <Upload size={16} /> Restore backup
@@ -154,14 +187,16 @@ export function Settings({
               />
             </label>
           </div>
-          {store.error && (
+          {(store.legacyError || (mode === 'sample' && store.error)) && (
             <button
               className="text-link"
-              onClick={() => {
+              onClick={async () => {
                 try {
                   download(
                     'resonance-original-storage.txt',
-                    localStorage.getItem(`resonance:${mode}:v1`) || '',
+                    localStorage.getItem(
+                      `resonance:${store.legacyError ? 'personal' : mode}:v1`,
+                    ) || '',
                     'text/plain',
                   );
                 } catch {
@@ -184,9 +219,13 @@ export function Settings({
               <div className="button-row">
                 <button
                   className="button primary"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      commit(restore, 'Backup restored successfully.', true)
+                      await commit(
+                        restore,
+                        'Backup restored successfully.',
+                        true,
+                      )
                     ) {
                       setRestore(undefined);
                       setMessage(
@@ -235,132 +274,118 @@ export function Settings({
           </p>
         </section>
         <section>
-          <h3>Listening history</h3>
-          <p>
-            Import a ListenBrainz JSON file, or fetch up to 1,000 recent public
-            listens when the provider adapter is configured. Nothing from your
-            journal is sent to ListenBrainz.
-          </p>
-          <label className="field">
-            ListenBrainz username{' '}
-            <span className="optional">identifies the source</span>
-            <input
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              maxLength={64}
-              placeholder="Your username"
-            />
-          </label>
-          <div className="button-row">
-            <label className="button">
-              <Upload size={16} /> Import history file
+          <details>
+            <summary>Advanced: ListenBrainz import</summary>
+            <p>
+              Import a ListenBrainz JSON file, or fetch up to 1,000 recent
+              public listens when the provider adapter is configured. Nothing
+              from your journal is sent to ListenBrainz.
+            </p>
+            <label className="field">
+              ListenBrainz username{' '}
+              <span className="optional">identifies the source</span>
               <input
-                type="file"
-                accept="application/json,.json"
-                onChange={(e) => {
-                  void historyFile(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                maxLength={64}
+                placeholder="Your username"
               />
             </label>
-            <button
-              className="button"
-              disabled={!user.trim() || busy}
-              onClick={fetchHistory}
-            >
-              {busy ? 'Fetching…' : 'Fetch public history'}
-            </button>
-            <a
-              className="text-link"
-              href="https://listenbrainz.org"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ListenBrainz <ArrowUpRight size={14} />
-            </a>
-          </div>
-          {imported && (
-            <div className="confirm-block">
-              <h3>{imported.moments.length} valid listens ready</h3>
-              <p>
-                Source: {imported.user}. {imported.skipped} invalid or duplicate
-                rows skipped. Previously imported records will not be counted
-                again.
-              </p>
-              <div className="button-row">
-                <button
-                  className="button primary"
-                  onClick={() => {
-                    const dates = imported.moments.map((m) => m.date).sort();
-                    const next = mergeListens(state, imported.moments, {
-                      source: 'listenbrainz',
-                      user: imported.user,
-                      from: dates[0],
-                      to: dates.at(-1)!,
-                      importedAt: new Date().toISOString(),
-                    });
-                    const n = next.moments.length - state.moments.length;
-                    if (
-                      commit(next, `${n} new ListenBrainz records imported.`)
-                    ) {
-                      setImported(undefined);
-                      setMessage(
-                        `${n} new listens added. Imported history is labelled separately in Atlas.`,
-                      );
-                    }
+            <div className="button-row">
+              <label className="button">
+                <Upload size={16} /> Import history file
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(e) => {
+                    void historyFile(e.target.files?.[0]);
+                    e.target.value = '';
                   }}
-                >
-                  Import these listens
-                </button>
-                <button
-                  className="button quiet"
-                  onClick={() => setImported(undefined)}
-                >
-                  Cancel
-                </button>
-              </div>
+                />
+              </label>
+              <button
+                className="button"
+                disabled={!user.trim() || busy}
+                onClick={fetchHistory}
+              >
+                {busy ? 'Fetching…' : 'Fetch public history'}
+              </button>
+              <a
+                className="text-link"
+                href="https://listenbrainz.org"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                ListenBrainz <ArrowUpRight size={14} />
+              </a>
             </div>
-          )}
-          {state.historyCoverage && (
-            <p className="provenance">
-              Last import: {dateLabel(state.historyCoverage.importedAt)}.
-              Imported date span may contain gaps.
-            </p>
-          )}
+            {imported && (
+              <div className="confirm-block">
+                <h3>{imported.moments.length} valid listens ready</h3>
+                <p>
+                  Source: {imported.user}. {imported.skipped} invalid or
+                  duplicate rows skipped. Previously imported records will not
+                  be counted again.
+                </p>
+                <div className="button-row">
+                  <button
+                    className="button primary"
+                    onClick={async () => {
+                      const dates = imported.moments.map((m) => m.date).sort();
+                      const next = mergeListens(state, imported.moments, {
+                        source: 'listenbrainz',
+                        user: imported.user,
+                        from: dates[0],
+                        to: dates.at(-1)!,
+                        importedAt: new Date().toISOString(),
+                      });
+                      const n = next.moments.length - state.moments.length;
+                      if (
+                        await commit(
+                          next,
+                          `${n} new ListenBrainz records imported.`,
+                        )
+                      ) {
+                        setImported(undefined);
+                        setMessage(
+                          `${n} new listens added. Imported history is labelled separately in Atlas.`,
+                        );
+                      }
+                    }}
+                  >
+                    Import these listens
+                  </button>
+                  <button
+                    className="button quiet"
+                    onClick={() => setImported(undefined)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {state.historyCoverage && (
+              <p className="provenance">
+                Last import: {dateLabel(state.historyCoverage.importedAt)}.
+                Imported date span may contain gaps.
+              </p>
+            )}
+          </details>
         </section>
         <section>
-          <div className="connection-row">
-            <strong>Spotify</strong>
-            <span className="connection-state">Link handoff ready</span>
-          </div>
-          <p>
-            Open saved Spotify links in Spotify. API connection, playlist export
-            and in-app playback are not configured for this release.
-          </p>
-          <div className="connection-row">
-            <strong>MusicBrainz</strong>
-            <span className="connection-state">Optional metadata</span>
-          </div>
-          <p>
-            Manual entries work immediately. Matching uses the optional
-            identified server adapter. You can also search MusicBrainz and
-            correct an entry yourself.
-          </p>
-        </section>
-        <section>
-          <h3>
-            {mode === 'sample' ? 'Sample collection' : 'Delete local data'}
-          </h3>
+          <h3>{mode === 'sample' ? 'Sample collection' : 'Clear your room'}</h3>
           <p>
             {mode === 'sample'
               ? 'Sample edits never affect your personal music. Reset the sample any time.'
-              : 'Delete this personal collection from this browser. Download a backup first if you want to keep it.'}
+              : 'Clear the records, memories and capsules saved in your account. Your listening archive and connections are managed separately. Download a backup first if you want to keep it.'}
           </p>
           {mode === 'sample' ? (
             <button
               className="button"
-              onClick={() => {
-                if (commit(sampleState(), 'Sample collection reset.', true))
+              onClick={async () => {
+                if (
+                  await commit(sampleState(), 'Sample collection reset.', true)
+                )
                   setMessage(
                     'Sample restored. Your personal collection is unchanged.',
                   );
@@ -380,14 +405,14 @@ export function Settings({
             <div className="confirm-block">
               <p>
                 Delete all {state.items.length} records, {state.capsules.length}{' '}
-                capsules and {state.moments.length} moments on this device?
+                capsules and {state.moments.length} moments from your account?
               </p>
               <div className="button-row">
                 <button
                   className="button danger"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      commit(
+                      await commit(
                         structuredClone(EMPTY_STATE),
                         'Personal collection deleted. Undo is available.',
                         true,
@@ -410,6 +435,78 @@ export function Settings({
             </div>
           )}
         </section>
+        {mode === 'personal' && (
+          <section>
+            <h3>Listening archive</h3>
+            <p>
+              Download your separately recorded listening history, including its
+              original sources.
+            </p>
+            <button
+              className="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await exportArchive();
+                  setMessage('Listening history exported.');
+                } catch {
+                  setError('Export could not finish. Please try again.');
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Export listening history
+            </button>
+          </section>
+        )}
+        {mode === 'personal' && (
+          <section>
+            <h3>Delete Resonance account data</h3>
+            <p>
+              Remove your room, uploaded capsule images, listening archive and
+              saved connections. Background updates stop. This does not delete
+              your ChatGPT, Spotify or Discord accounts or replies already
+              posted in Discord.
+            </p>
+            {!erase ? (
+              <button className="button danger" onClick={() => setErase(true)}>
+                Delete my Resonance data
+              </button>
+            ) : (
+              <div className="confirm-block">
+                <label>
+                  Type DELETE to confirm
+                  <input
+                    className="account-delete-input"
+                    value={confirmation}
+                    onChange={(e) => setConfirmation(e.target.value)}
+                    autoComplete="off"
+                  />
+                </label>
+                <div className="button-row">
+                  <button
+                    className="button danger"
+                    disabled={confirmation !== 'DELETE' || store.saving}
+                    onClick={() => void store.eraseAccount()}
+                  >
+                    Permanently delete and sign out
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => {
+                      setErase(false);
+                      setConfirmation('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
         {(error || store.error) && (
           <p className="error-message" role="alert">
             <AlertCircle size={16} />

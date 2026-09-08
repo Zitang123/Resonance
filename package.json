@@ -9,14 +9,15 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
-    "lint": "oxlint app components/resonance components/karina lib/resonance lib/karina karina-worker scripts/register-karina.ts hooks/use-room-motion.ts",
+    "lint": "oxlint app components/resonance components/karina lib/resonance lib/karina lib/account karina-worker scripts/register-karina.ts hooks/use-room-motion.ts",
     "format": "oxfmt",
     "typecheck": "tsc --noEmit",
     "test": "node --test lib/resonance/domain.test.ts lib/resonance/service-worker.test.mjs lib/karina/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm test",
     "db:generate": "drizzle-kit generate",
     "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.jsonc",
-    "karina:commands": "node scripts/register-karina.ts"
+    "karina:commands": "node scripts/register-karina.ts",
+    "test:accounts": "node scripts/check-accounts.mjs && node scripts/check-account-faults.mjs && node scripts/check-account-races.mjs && node scripts/check-account-client.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

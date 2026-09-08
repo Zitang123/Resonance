@@ -1,4 +1,5 @@
 'use client';
+import { accountHeaders, getActiveAccount } from '@/lib/account/client';
 import { useCallback, useEffect, useState } from 'react';
 export type ArchiveStatus = {
   signedIn: boolean;
@@ -16,7 +17,11 @@ export type ArchiveStatus = {
   schedulerLastSeen: number | null;
   installUrl: string | null;
 };
-export async function api<T>(url: string, data?: unknown): Promise<T> {
+export async function api<T>(
+  url: string,
+  data?: unknown,
+  owner = getActiveAccount(),
+): Promise<T> {
   const response = await fetch(url, {
     ...(data === undefined
       ? {}
@@ -25,9 +30,15 @@ export async function api<T>(url: string, data?: unknown): Promise<T> {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         }),
+    headers: {
+      ...accountHeaders(owner),
+      ...(data === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
     cache: 'no-store',
     signal: AbortSignal.timeout(25000),
   });
+  if (owner !== getActiveAccount())
+    throw Error('Your account changed. Please retry from your own account.');
   const result = (await response.json()) as T & { error?: string };
   if (!response.ok)
     throw Error(result.error || 'The archive is temporarily unavailable.');

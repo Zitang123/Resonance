@@ -29,7 +29,7 @@ export function Crate({
   onStart: () => void;
   onAdd: () => void;
   onOpen: (i: MusicItem) => void;
-  onChange: (s: State, message: string) => boolean;
+  onChange: (s: State, message: string) => Promise<boolean>;
 }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
@@ -61,9 +61,9 @@ export function Crate({
   const pages = Math.max(1, Math.ceil(filtered.length / 24));
   const current = Math.min(page, pages - 1);
   const shown = filtered.slice(current * 24, current * 24 + 24);
-  function bulk(status: MusicItem['status']) {
+  async function bulk(status: MusicItem['status']) {
     if (
-      onChange(
+      await onChange(
         {
           ...state,
           items: state.items.map((i) =>
@@ -271,9 +271,9 @@ export function Crate({
               <button
                 className="button small"
                 disabled={!bulkCap}
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    onChange(
+                    await onChange(
                       {
                         ...state,
                         capsules: state.capsules.map((c) =>
@@ -307,7 +307,7 @@ export function Crate({
             >
               <button
                 className="button"
-                onClick={() => {
+                onClick={async () => {
                   setQ('');
                   setFilter('all');
                   setTag('');
@@ -414,7 +414,7 @@ export function Crate({
           <p>
             No streaming account needed.
             <br />
-            Your collection stays on this device.
+            Your personal collection is saved to your account.
           </p>
         </div>
       )}

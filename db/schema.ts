@@ -92,3 +92,26 @@ export const archiveOwners = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.source] })],
 );
+
+// Collection documents are partitioned below D1's row limit; uploaded images live privately in R2.
+export const rooms = sqliteTable('rooms', {
+  userId: text('user_id').primaryKey(),
+  revision: text('revision').notNull(),
+  onboarded: integer('onboarded').notNull().default(0),
+  imageKey: text('image_key'),
+  updatedAt: integer('updated_at').notNull(),
+});
+export const roomChunks = sqliteTable(
+  'room_chunks',
+  {
+    userId: text('user_id').notNull(),
+    part: integer('part').notNull(),
+    data: text('data').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.part] })],
+);
+
+export const roomImageCleanup = sqliteTable('room_image_cleanup', {
+  key: text('key').primaryKey(),
+  dueAt: integer('due_at').notNull(),
+});

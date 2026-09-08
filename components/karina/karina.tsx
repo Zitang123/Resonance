@@ -610,7 +610,7 @@ export function Karina({ onListening }: { onListening: () => void }) {
     </div>
   );
 }
-function ConnectButton({
+export function ConnectButton({
   provider,
   status,
 }: {

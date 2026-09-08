@@ -1,3 +1,4 @@
+import { room } from '@/lib/account/collection';
 import {
   ApiError,
   configured,
@@ -27,19 +28,22 @@ export async function GET(
         'Open the configured Resonance address before connecting.',
         400,
       );
+    const generation = (await room(owner))?.revision;
+    if (!generation)
+      throw new ApiError('Open your Resonance account before connecting.', 409);
     const state = randomToken(),
       verifier = randomToken(48),
       now = Date.now(),
       url = makeAuthorization(p, providerConfig(), state, verifier);
-    await database().batch([
+    const saved = await database().batch([
       database()
         .prepare(
-          'DELETE FROM oauth_states WHERE expires < ? OR (user_id=? AND provider=?)',
+          'DELETE FROM oauth_states WHERE expires < ? OR (user_id=? AND provider=? AND EXISTS (SELECT 1 FROM rooms WHERE user_id=? AND revision=?))',
         )
-        .bind(now, owner, p),
+        .bind(now, owner, p, owner, generation),
       database()
         .prepare(
-          'INSERT INTO oauth_states(hash,user_id,provider,verifier,expires) VALUES (?,?,?,?,?)',
+          'INSERT INTO oauth_states(hash,user_id,provider,verifier,expires) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM rooms WHERE user_id=? AND revision=?)',
         )
         .bind(
           hashState(state),
@@ -47,8 +51,15 @@ export async function GET(
           p,
           seal(owner, p, verifier),
           now + 600000,
+          owner,
+          generation,
         ),
     ]);
+    if (!saved[1].meta.changes)
+      throw new ApiError(
+        'Your account changed. Reopen Resonance before connecting.',
+        409,
+      );
     return new Response(null, {
       status: 302,
       headers: {

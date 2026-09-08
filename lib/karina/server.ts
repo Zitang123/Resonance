@@ -24,6 +24,12 @@ export function user(request: Request) {
   const id = request.headers.get('oai-authenticated-user-id');
   if (!id || id.length > 200)
     throw new ApiError('Sign in to use your private listening archive.', 401);
+  const expected = request.headers.get('x-resonance-account');
+  if (expected && expected !== id)
+    throw new ApiError(
+      'Your sign-in changed. Reopen your Resonance account.',
+      409,
+    );
   return id;
 }
 export function origin(request: Request) {

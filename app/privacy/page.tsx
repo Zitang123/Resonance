@@ -9,16 +9,18 @@ export default function PrivacyPage() {
         ← Back to Resonance
       </Link>
       <h1>Your music. Your data.</h1>
-      <p>Updated 7 September 2026.</p>
+      <p>Updated 8 September 2026.</p>
       <section>
         <h2>Your account and connections</h2>
         <p>
-          Resonance uses your signed-in account to keep listening archives and
-          service connections separate. Linking Discord stores your Discord ID
-          and display name. Linking Spotify stores its verified account ID,
-          display name and encrypted access and refresh tokens. Your Spotify
-          password stays with Spotify; Resonance does not request your email
-          address, change your playlists or control playback.
+          Resonance uses ChatGPT sign-in to keep your room, listening archive
+          and service connections separate. Your sign-in name or email is shown
+          only to you. Spotify and Discord connections are optional. Linking
+          Discord stores your Discord ID and display name. Linking Spotify
+          stores its verified account ID, display name and encrypted access and
+          refresh tokens. Your Spotify password stays with Spotify; Resonance
+          does not request your email address, change your playlists or control
+          playback.
         </p>
       </section>
       <section>
@@ -56,12 +58,17 @@ export default function PrivacyPage() {
       <section>
         <h2>Storage and service providers</h2>
         <p>
-          The listening archive and encrypted connections are stored by the
-          OpenAI Sites hosting service on Cloudflare. Spotify and Last.fm
-          receive the requests needed for the connections you authorize. Discord
-          receives the replies you request. Crate, Tonight, Atlas and Capsules
-          currently remain in this browser’s local storage; they are not yet
-          synchronized to your account.
+          Your records, memories, capsule writing and preferences are saved in
+          your account by OpenAI Sites on Cloudflare. Uploaded capsule images
+          are kept in private object storage and returned only with your
+          authenticated room. The listening archive and encrypted connections
+          are also stored there. Spotify and Last.fm receive the requests needed
+          for the connections you authorize. Discord receives the replies you
+          request. The labelled sample stays in this browser. Older device
+          collections are uploaded only when you explicitly choose to move or
+          restore them. An original device copy is retained for recovery;
+          clearing browser storage removes that copy and the sample, not your
+          saved account.
         </p>
         <p>
           Resonance does not add advertising trackers or send music data into an
@@ -78,8 +85,12 @@ export default function PrivacyPage() {
           identity and tokens and stops future playback checks. Disconnecting
           Last.fm stops future sync; previously imported records remain until
           you delete that history source. Deleting Last.fm history also stops
-          its sync. Export or clear browser-local collections through Settings
-          &amp; backup.
+          its sync. Account &amp; settings lets you export or clear your room,
+          export your listening archive, or delete all Resonance account data
+          and sign out. Deletion removes account access immediately and stops
+          connections. Image removal is retried automatically if storage is
+          temporarily unavailable. Device copies and files you previously
+          exported remain under your control.
         </p>
         <p>
           You can also revoke access in{' '}

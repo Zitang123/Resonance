@@ -3077,3 +3077,212 @@ textarea {
     font-size: 13px;
   }
 }
+
+/* Account entry follows the room's typography and restrained motion. */
+.account-welcome {
+  min-height: 100svh;
+  max-width: 1480px;
+  margin: auto;
+  padding: 42px clamp(24px, 6vw, 100px);
+  display: flex;
+  flex-direction: column;
+}
+.account-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+}
+.welcome-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: 60px;
+  padding: 80px 0;
+}
+.welcome-copy {
+  max-width: 590px;
+}
+.welcome-copy h1 {
+  font-size: clamp(54px, 6vw, 88px);
+  font-weight: 450;
+  line-height: 1.05;
+  letter-spacing: -0.065em;
+  margin: 24px 0;
+}
+.welcome-copy h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  color: var(--copper, #c49b78);
+  letter-spacing: -0.045em;
+}
+.welcome-intro {
+  max-width: 440px;
+  line-height: 1.7;
+  color: var(--muted-foreground, #a6aaa2);
+  font-size: 17px;
+}
+.welcome-enter {
+  margin-top: 26px;
+  min-height: 48px;
+}
+.welcome-note {
+  font-size: 12px !important;
+  line-height: 1.6;
+  color: #9b9f98;
+  margin: 12px 0 20px;
+}
+.welcome-identity {
+  margin-top: 30px;
+  font-size: 13px;
+  color: #b5b9b1;
+  overflow-wrap: anywhere;
+}
+.welcome-art {
+  position: relative;
+  overflow: hidden;
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  border-top: 1px solid #30342e;
+  border-bottom: 1px solid #30342e;
+}
+.welcome-art > span {
+  position: absolute;
+  bottom: 24px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9b9f98;
+}
+.welcome-art .ribbon {
+  width: 100%;
+  height: 360px;
+}
+.welcome-footer {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  color: #9b9f98;
+  font-size: 12px;
+}
+.welcome-footer > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-connect-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid #30342e;
+}
+.account-connect-row h3 {
+  font-size: 15px;
+  margin: 0 0 5px;
+}
+.account-connect-row p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9b9f98;
+  margin: 0;
+}
+.account-connect-row .button {
+  flex-shrink: 0;
+}
+.history-bridge {
+  margin-top: 20px;
+}
+.history-bridge summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+.history-bridge p {
+  color: #a6aaa2;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.history-bridge .text-button {
+  display: flex;
+  margin: 15px 0;
+}
+.legacy-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid #373a34;
+}
+.legacy-banner > div {
+  flex: 1;
+}
+.legacy-banner strong {
+  font-size: 14px;
+}
+.legacy-banner p {
+  font-size: 12px;
+  color: #a6aaa2;
+  margin: 5px 0;
+}
+.account-identity {
+  overflow-wrap: anywhere;
+}
+.account-delete-input {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid #666;
+  border-radius: 8px;
+  margin: 12px 0;
+  color: inherit;
+}
+.account-welcome .welcome-copy {
+  animation: account-arrive 0.55s ease-out both;
+}
+@keyframes account-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 800px) {
+  .welcome-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 60px 0;
+  }
+  .welcome-art {
+    min-height: 200px;
+    order: 2;
+  }
+  .welcome-art .ribbon {
+    height: 200px;
+  }
+  .account-connect-row {
+    gap: 12px;
+  }
+  .account-welcome {
+    padding: 28px 24px;
+  }
+  .legacy-banner {
+    flex-wrap: wrap;
+  }
+  .legacy-banner > div {
+    flex-basis: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-welcome .welcome-copy {
+    animation: none;
+  }
+}
